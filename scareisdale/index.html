@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Scareisdale">
 <meta name="theme-color" content="#120822">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
 <title>Welcome to Scareisdale</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -94,13 +97,17 @@ html.phone-land, html.phone-land body{height:100%; overflow:hidden; touch-action
 .phone-land .stage{max-width:none; padding:0; border-radius:0; background:none; box-shadow:none; animation:none}
 .phone-land canvas{border-radius:0}
 .phone-land .overlay{inset:0; border-radius:0}
-.phone-land .touch{display:flex; position:fixed; left:0; right:0; bottom:0; width:auto; max-width:none; box-sizing:border-box; z-index:5; pointer-events:none;
+.phone-land .touch{display:flex; position:fixed; left:0; right:0; bottom:auto; width:auto; max-width:none; box-sizing:border-box; z-index:5; pointer-events:none;
   padding:0 max(14px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px))}
 .phone-land .touch .grp{pointer-events:auto}
 .phone-land .touch button{background:rgba(43,15,69,.45); border-color:rgba(255,231,194,.35); width:56px; height:56px}
 .phone-land .touch button.act{background:rgba(232,48,74,.55)}
 .touch button[data-k=left],.touch button[data-k=right],.touch button[data-k=down]{font-size:18px}
 .ver{font-size:8px; color:var(--dim); opacity:.8}
+.phone-land .overlay{gap:10px; padding:8px}
+.phone-land .overlay p:not(.homehint){display:none}
+.homehint{display:none !important}
+.ios-browser .homehint{display:block !important; color:var(--bulb) !important}
 @media (prefers-reduced-motion:reduce){ .stage{animation:none} .ticket{transition:none} }
 </style>
 </head>
@@ -117,6 +124,7 @@ html.phone-land, html.phone-land body{height:100%; overflow:hidden; touch-action
       <h2>Step right up</h2>
       <p>Run the midway, bonk the prize blocks for tickets, stomp zombies, ghouls, spiders and clowns (ghosts only creep up when your back is turned), grab cotton candy to grow, and slide down the pole at the Funhouse.</p>
       <button class="ticket" id="startBtn">ADMIT ONE &#9656; START</button>
+      <p class="homehint">For true full screen: tap Share &rarr; Add to Home Screen, then play from the icon.</p>
       <span class="ver" id="verOverlay"></span>
       <p class="keys-only" style="color:var(--dim)">Hold jump longer to jump higher. Run to jump farther.<br>Rumor says some drums go deeper, and some prizes hide in thin air.</p>
     </div>
@@ -148,21 +156,31 @@ html.phone-land, html.phone-land body{height:100%; overflow:hidden; touch-action
 <script>
 (() => {
 'use strict';
-const VERSION = 'v1.2';
+const VERSION = 'v1.3';
 document.getElementById('verBar').textContent = VERSION;
 document.getElementById('verOverlay').textContent = VERSION;
 const TS = 16, VW = 384, VH = 240, ROWS = 15;
 
-// Fit the game to a phone held sideways, using the real window size (more reliable than CSS units on iOS)
-const stageEl = document.getElementById('stage');
+// Fit the game to a phone held sideways. Uses the visual viewport (the area not covered by browser bars)
+// and positions the game and buttons inside it directly, so Safari's toolbars can't hide or shrink it.
+const stageEl = document.getElementById('stage'), touchEl = document.getElementById('touch');
+if (navigator.standalone === false) document.documentElement.classList.add('ios-browser');
 function fitPhone() {
-  const w = window.innerWidth, h = window.innerHeight, on = w > h && h <= 600;
+  const vv = window.visualViewport;
+  const w = vv ? vv.width : window.innerWidth, h = vv ? vv.height : window.innerHeight;
+  const ox = vv ? vv.offsetLeft : 0, oy = vv ? vv.offsetTop : 0;
+  const on = w > h && h <= 600;
   document.documentElement.classList.toggle('phone-land', on);
-  stageEl.style.width = on ? Math.floor(Math.min(w, h * 1.6)) + 'px' : '';
+  if (!on) { stageEl.style.cssText = ''; touchEl.style.top = ''; return; }
+  if (window.scrollY) window.scrollTo(0, 0);
+  const gw = Math.floor(Math.min(w, h * 1.6)), gh = Math.floor(gw / 1.6);
+  stageEl.style.cssText = `position:fixed; width:${gw}px; left:${Math.round(ox + (w - gw) / 2)}px; top:${Math.round(oy + (h - gh) / 2)}px; z-index:4`;
+  touchEl.style.top = Math.round(oy + h - 56 - 10) + 'px';
 }
 window.addEventListener('resize', fitPhone);
-window.addEventListener('orientationchange', () => { fitPhone(); setTimeout(fitPhone, 350); });
+window.addEventListener('orientationchange', () => { fitPhone(); setTimeout(fitPhone, 350); setTimeout(fitPhone, 900); });
 window.visualViewport?.addEventListener('resize', fitPhone);
+window.visualViewport?.addEventListener('scroll', fitPhone);
 fitPhone();
 const cv = document.getElementById('game');
 const ctx = cv.getContext('2d');

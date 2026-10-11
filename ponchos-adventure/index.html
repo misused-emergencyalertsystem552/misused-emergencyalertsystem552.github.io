@@ -1,0 +1,1986 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Poncho’s Adventure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400;600&display=swap">
+<style>
+/* Layout: one centered arcade cabinet column; HUD above the 13x13 board, hint + controls below. */
+:root {
+  --bg: #15122b;
+  --panel: #221d45;
+  --edge: #3a3270;
+  --fg: #f2eefe;
+  --muted: #a99fd6;
+  --heart: #ff4d6d;
+  --gold: #ffd166;
+  --emerald: #34d399;
+  --font-display: "Silkscreen", "Courier New", monospace;
+  --font-body: "Pixelify Sans", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  padding-inline: 16px;
+  padding-block: 12px;
+  box-sizing: border-box;
+  -webkit-user-select: none; user-select: none;
+  touch-action: manipulation;
+}
+.wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+header { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; margin: 0; letter-spacing: .04em; color: var(--gold); text-shadow: 3px 3px 0 #7a2140; }
+.version { font-family: var(--font-body); font-size: .7rem; color: var(--muted); text-shadow: none; letter-spacing: 0; vertical-align: middle; }
+#levelName { font-family: var(--font-display); font-size: .9rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.hud { width: 100%; display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 2px solid var(--edge); padding: 4px 10px; font-variant-numeric: tabular-nums; font-size: .95rem; }
+.chip b { font-family: var(--font-display); font-weight: 400; color: var(--muted); font-size: .7rem; letter-spacing: .08em; }
+.chip .h { color: var(--heart); } .chip .s { color: #8fd3ff; }
+.hud .spacer { flex: 1; }
+.btn { font-family: var(--font-display); font-size: .75rem; letter-spacing: .06em; background: var(--panel); color: var(--fg); border: 2px solid var(--edge); padding: 6px 10px; cursor: pointer; }
+.btn:hover { border-color: var(--gold); }
+.btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.stage { position: relative; width: min(100%, 624px, calc(100dvh - 230px)); min-width: 260px; aspect-ratio: 1; max-width: 100%; }
+canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; border: 3px solid var(--edge); box-sizing: border-box; background: #000; }
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(12, 9, 30, .82); padding: 16px; box-sizing: border-box; }
+.card { background: var(--panel); border: 3px solid var(--gold); padding: 18px; max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 12px; max-height: 100%; overflow: auto; box-sizing: border-box; }
+.card h2 { font-family: var(--font-display); margin: 0; color: var(--gold); font-size: 1.25rem; text-wrap: balance; }
+.card p { margin: 0; line-height: 1.4; color: var(--fg); }
+.card .small { color: var(--muted); font-size: .9rem; }
+.levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.lv { font-family: var(--font-display); background: var(--bg); color: var(--fg); border: 2px solid var(--edge); padding: 8px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 1.1rem; }
+.lv span { font-family: var(--font-body); font-size: .7rem; color: var(--muted); text-align: center; line-height: 1.1; }
+.lv.done { border-color: var(--emerald); }
+.lv.done::after { content: "cleared"; font-family: var(--font-body); font-size: .65rem; color: var(--emerald); }
+.lv:hover, .lv:focus-visible { border-color: var(--gold); outline: none; }
+.primary { background: var(--heart); border-color: #ffa3b5; color: #fff; font-size: .9rem; padding: 10px 14px; }
+.hint { width: 100%; background: var(--panel); border-left: 4px solid var(--emerald); padding: 8px 12px; box-sizing: border-box; line-height: 1.35; font-size: .95rem; min-height: 2.8em; }
+.keys { width: 100%; color: var(--muted); font-size: .85rem; display: flex; gap: 14px; flex-wrap: wrap; }
+.keys kbd { font-family: var(--font-display); font-size: .7rem; background: var(--panel); border: 1px solid var(--edge); padding: 1px 5px; color: var(--fg); }
+.pad { display: none; width: 100%; justify-content: space-between; align-items: center; gap: 16px; }
+.dpad { display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px); gap: 4px; }
+.dpad button, .fire { background: var(--panel); border: 2px solid var(--edge); color: var(--fg); font-size: 1.3rem; touch-action: none; }
+.dpad button:active, .fire:active, .dpad button.on { background: var(--edge); }
+.fire.tool { width: 64px; height: 64px; border-color: var(--gold); font-size: .65rem; }
+.fire kbd { display: block; margin-top: 3px; font-family: var(--font-body); font-size: .8em; color: var(--muted); letter-spacing: .04em; }
+.fire { width: 84px; height: 84px; border-radius: 50%; border-color: #8fd3ff; font-family: var(--font-display); font-size: .8rem; }
+@media (pointer: coarse) { .pad { display: flex; } .keys { display: none; } .stage { width: min(100%, 624px, calc(100dvh - 330px)); } }
+.fireCol { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+/* Large landscape screens (iPad Pro 13" is 1376x1032): grow the board to the screen height. */
+@media (orientation: landscape) and (min-width: 1000px) and (min-height: 700px) {
+  .wrap { max-width: 1320px; }
+  .stage { width: min(100%, 900px, calc(100dvh - 232px)); }
+  .hint, .keys { max-width: 900px; }
+}
+/* Touch tablets in landscape: d-pad left of the board, shot and power buttons right of it. */
+@media (pointer: coarse) and (orientation: landscape) and (min-width: 1000px) and (min-height: 700px) {
+  .wrap { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "head head head" "hud hud hud" "dpad stage fire" "hint hint hint"; column-gap: 28px; row-gap: 10px; align-items: center; justify-items: center; }
+  header { grid-area: head; }
+  .hud { grid-area: hud; }
+  .stage { grid-area: stage; width: min(calc(100dvh - 202px), calc(100vw - 640px)); }
+  .hint { grid-area: hint; }
+  .pad { display: contents; }
+  .dpad { grid-area: dpad; grid-template-columns: repeat(3, 80px); grid-template-rows: repeat(3, 80px); gap: 6px; }
+  .dpad button { font-size: 1.8rem; }
+  .fireCol { grid-area: fire; gap: 18px; }
+  .fire { width: 124px; height: 124px; font-size: 1rem; }
+  .fire.tool { width: 96px; height: 96px; font-size: .8rem; }
+}
+/* Phones (iPhone 17 Pro Max shows about 440x800 in Safari): compact chrome so the whole game fits without scrolling. */
+@media (pointer: coarse) and (max-width: 600px) {
+  body { padding-block: 8px; }
+  .wrap { gap: 6px; }
+  header { flex-wrap: nowrap; }
+  h1 { font-size: 1.1rem; white-space: nowrap; }
+  #levelName { font-size: .62rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .hud { gap: 4px; }
+  .chip { padding: 2px 6px; font-size: .8rem; gap: 4px; border-width: 1px; }
+  .chip b { font-size: .58rem; }
+  .hud .btn { padding: 4px 7px; font-size: .62rem; }
+  .stage { width: min(100%, 624px, calc(100dvh - 352px)); }
+  .hint { font-size: .78rem; padding: 5px 8px; min-height: 0; line-height: 1.3; }
+  .dpad { grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); }
+  .fire { width: 72px; height: 72px; }
+  .fire.tool { width: 54px; height: 54px; font-size: .55rem; }
+}
+@media (max-width: 420px) { h1 { font-size: 1.25rem; } .levels { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Poncho’s Adventure <span class="version" id="version"></span></h1>
+    <div id="levelName">Level 1</div>
+  </header>
+  <div class="hud">
+    <div class="chip"><b>HEARTS</b><span class="h" id="hudHearts">0/0</span></div>
+    <div class="chip"><b>SHOTS</b><span class="s" id="hudShots">0</span></div>
+    <div class="chip"><b>POWER</b><span id="hudPower">none</span></div>
+    <div class="chip"><b>RETRIES</b><span id="hudDeaths">0</span></div>
+    <div class="spacer"></div>
+    <button class="btn" id="btnSound" type="button" aria-pressed="true">Music on</button>
+    <button class="btn" id="btnRetry" type="button">Retry</button>
+    <button class="btn" id="btnMenu" type="button">Levels</button>
+  </div>
+  <div class="stage">
+    <canvas id="cv" width="624" height="624" aria-label="Game board"></canvas>
+    <div class="overlay" id="ovMenu">
+      <div class="card">
+        <h2>Poncho’s Adventure</h2>
+        <p>Poncho the cat must cross the keep's rooms. In each room, collect every Heart Framer to open the chest, take the jewel, and leave through the door that opens at the top.</p>
+        <p class="small">Push green Emerald Framers to block gazes. Gold-framed purple hearts give 2 magic shots: hit a monster to turn it into an egg, hit the egg to send it away for a while. Eggs can be pushed, and they float on water. Trees stop your feet but not shots or stares. Later rooms add grey hearts that give a Hammer for breaking one rock, teal hearts that give a Bridge for crossing one water or lava tile (press X), plus sand that slows you, grass that monsters cannot enter, and river currents that carry eggs.</p>
+        <div class="levels" id="levelGrid"></div>
+      </div>
+    </div>
+    <div class="overlay" id="ovIntro" hidden>
+      <div class="card">
+        <h2 id="introTitle">Level</h2>
+        <p id="introText"></p>
+        <button class="btn primary" id="btnStart" type="button">Start room</button>
+      </div>
+    </div>
+    <div class="overlay" id="ovClear" hidden>
+      <div class="card">
+        <h2 id="clearTitle">Room cleared</h2>
+        <p id="clearText"></p>
+        <button class="btn primary" id="btnNext" type="button">Next room</button>
+      </div>
+    </div>
+  </div>
+  <div class="hint" id="hint">Choose a room to begin.</div>
+  <div class="keys">
+    <span><kbd>←↑↓→</kbd> / <kbd>WASD</kbd> move</span>
+    <span><kbd>SPACE</kbd> / <kbd>Z</kbd> magic shot</span>
+    <span><kbd>X</kbd> use power</span>
+    <span><kbd>R</kbd> retry room</span>
+    <span><kbd>M</kbd> music</span>
+    <span><kbd>ESC</kbd> levels</span>
+  </div>
+  <div class="pad">
+    <div class="dpad">
+      <span></span><button type="button" data-dir="up" aria-label="Up">▲</button><span></span>
+      <button type="button" data-dir="left" aria-label="Left">◀</button><span></span><button type="button" data-dir="right" aria-label="Right">▶</button>
+      <span></span><button type="button" data-dir="down" aria-label="Down">▼</button><span></span>
+    </div>
+    <div class="fireCol">
+      <button class="fire" type="button" id="padFire" aria-label="Shot (Space)">SHOT<kbd>SPACE</kbd></button>
+      <button class="fire tool" type="button" id="padTool" aria-label="Power (X)">POWER<kbd>X</kbd></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+// ---------- Levels ----------
+// W wall, D door, T tree, R rock, ~ water, H bridge, ^v<> one-way arrows
+// h heart, m magic heart (+2 shots), C chest, E emerald framer, L Poncho
+// s Snakey, M Medusa, O Don Medusa (patrols sideways), G Gol, K Skull, p Leeper, a Alma
+const LEVELS = [
+  { name: "First Steps",
+    hint: "Collect every Heart Framer to open the chest. Take the jewel, then walk out the door. Snakeys just sit there.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W...........W",
+      "W..h.....h..W",
+      "W...TTTTT...W",
+      "W...........W",
+      "W.s.......s.W",
+      "W...........W",
+      "W...TTTTT...W",
+      "W..h.....h..W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Stone Gaze",
+    hint: "Medusa kills with one look along her row and column. Push the Emerald Framer into her line of sight before you cross.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W..h..C..h..W",
+      "W...........W",
+      "W.T.......T.W",
+      "WRRRRR.RRRRRW",
+      "WM..........W",
+      "WR..E.......W",
+      "W...........W",
+      "W.T.......T.W",
+      "W..h.....h..W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Magic Shot",
+    hint: "The purple heart gives 2 shots. Turn the Snakey into an egg, then push the egg into the river and walk across before it sinks.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "W...........W",
+      "W~~~~~~~~~~~W",
+      "W...........W",
+      "W.....s.....W",
+      "W...........W",
+      "W.m.......h.W",
+      "W...........W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Sleepy Leeper",
+    hint: "Leeper hurries toward you and falls asleep the moment it touches you. A sleeping Leeper makes a fine wall against Medusa.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W.h.......h.W",
+      "W...h...h...W",
+      "WRRRRR.RRRRRW",
+      "WM.........pW",
+      "WRR.RR.RRRRRW",
+      "W...........W",
+      "W...........W",
+      "W..h.....h..W",
+      "W...........W",
+      "W..L........W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Gol Awakens",
+    hint: "Gol sleeps until the last heart is taken, then spits fire down its row and column. The chest sits at the end of its column.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "WRCR....h...W",
+      "WR.R........W",
+      "WR.R..TTT...W",
+      "WR.R......h.W",
+      "WR.R........W",
+      "WR.R..h.....W",
+      "WR..........W",
+      "W...E.......W",
+      "W...........W",
+      "W.G.........W",
+      "W......L..h.W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Alma Rolls",
+    hint: "Alma hunts you down. Grab a magic heart, shoot once to make an egg, and again to send it away. It comes back, so be quick.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W.h.......h.W",
+      "W..T..a..T..W",
+      "W...........W",
+      "W.T.T.m.T.T.W",
+      "W...........W",
+      "W.h.......h.W",
+      "W...........W",
+      "W.T.T.m.T.T.W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "One Way Up",
+    hint: "Arrows only let anyone pass the way they point. The Skulls wake when the last heart is taken, so choose which heart that will be.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W.K.......K.W",
+      "W...........W",
+      "WRRRR^RvRRRRW",
+      "W.....h.....W",
+      "W.TTT...TTT.W",
+      "W.h.......h.W",
+      "W...TTTTT...W",
+      "W.h.......h.W",
+      "W.....m.....W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "The Keep",
+    hint: "Medusa watches the bridge and Don Medusa patrols the hall by the chest. Framers in the right places shut both of them out.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "WRRRRRCRRRRRW",
+      "WO..........W",
+      "WRRRRE.RRRRRW",
+      "W.h...R...h.W",
+      "W...........W",
+      "W~~~~~H~~~~~W",
+      "W...........W",
+      "W.h.E.....h.W",
+      "W.RRRRMRRRR.W",
+      "W.........h.W",
+      "W.L.........W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Pushing Through",
+    hint: "Two framers plug the way to the chest. Pushing the wrong one the wrong way seals it for good.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "WTTTTT.TTTTTW",
+      "W.h...E.....W",
+      "W.....E...h.W",
+      "W.TTTT.TTTT.W",
+      "W...........W",
+      "W.h.s...s.h.W",
+      "W...........W",
+      "W.TTTTTTTTT.W",
+      "W.h.......h.W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Twin Medusas",
+    hint: "Two Medusas stare down the same row. You need a framer on each side before you can cross.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W..h..C..h..W",
+      "W...........W",
+      "WM.........MW",
+      "WR..E...E..RW",
+      "W...........W",
+      "W...........W",
+      "W..h.....h..W",
+      "W...........W",
+      "W.....h.....W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Two Rivers",
+    hint: "Two rivers, two Snakeys, two shots. Each Snakey becomes the raft for its own river.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "W~~~~~~~~~~~W",
+      "W.....s.....W",
+      "W.........h.W",
+      "W~~~~~~~~~~~W",
+      "W.....s.....W",
+      "W...........W",
+      "W.m.......h.W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Pushy Pillow",
+    hint: "No framer this time. Let the Leeper fall asleep on you, then push it into Medusa's line.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W..h..C..h..W",
+      "W...........W",
+      "W.T.......T.W",
+      "WRRRRR.RRRRRW",
+      "WM..........W",
+      "WR..........W",
+      "W...........W",
+      "W.......p...W",
+      "W..h.....h..W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Fire Lane",
+    hint: "The chest is below Gol's lane and the hearts are above it. Block the lane before the last heart wakes Gol.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W..h.....h..W",
+      "W...........W",
+      "W.h..TTT..h.W",
+      "W...........W",
+      "WRRRRR.RRRRRW",
+      "WG..........W",
+      "WRR.RRRR.RRRW",
+      "W..E........W",
+      "W...........W",
+      "W.....C.....W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Skull Guard",
+    hint: "Two Skulls sit beside the chest. Egg them, blast the eggs away, then grab the last heart and run before they return.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W....KCK....W",
+      "W...........W",
+      "W.TTTT.TTTT.W",
+      "W...........W",
+      "W.h..m.m..h.W",
+      "W...........W",
+      "W.TTTT.TTTT.W",
+      "W...........W",
+      "W.h.......h.W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Vertical Watch",
+    hint: "Don Medusa paces the middle column. Shove a framer into the column while it is at the top, and it stays trapped there.",
+    map: [
+      "WWWWWWWWWWDWW",
+      "W.h..RQR..C.W",
+      "W....R.R....W",
+      "W..E.......hW",
+      "W....R.R....W",
+      "W.h..R.R..h.W",
+      "W....R.R....W",
+      "W....R.R....W",
+      "W....R.R....W",
+      "W...........W",
+      "W....R.R..h.W",
+      "W.L..R.R....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Rolling Halls",
+    hint: "Two Almas will roll down the hall. Grab both magic hearts first and hold the bottom of the hall.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W....a.a....W",
+      "WRRRRR.RRRRRW",
+      "WRRRRR.RRRRRW",
+      "WRRRRR.RRRRRW",
+      "W...........W",
+      "W.h.......h.W",
+      "W...........W",
+      "W....m.m....W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Sleeper Shield",
+    hint: "A sleeping Leeper stops fireballs too. Push it into Gol's lane before you take the last heart.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h.......h.W",
+      "W...........W",
+      "W....h.h....W",
+      "W...........W",
+      "WRRRRR.RRRRRW",
+      "WG..........W",
+      "WRR.RR.RRRRRW",
+      "W...........W",
+      "W.p.........W",
+      "W.....C.....W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Crate Shuffle",
+    hint: "Four framers guard the chest. Only one push opens the way; most of the others jam it shut.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "WRRRRRCRRRRRW",
+      "WRRRR.E.RRRRW",
+      "WRRRR.E.RRRRW",
+      "W.h..E.E..h.W",
+      "W...........W",
+      "W.TT.....TT.W",
+      "W.h..s.s..h.W",
+      "W...........W",
+      "W.TT.....TT.W",
+      "W.h.......h.W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Watched Waters",
+    hint: "To make the raft you must stand in Medusa's row. Shield yourself first.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "W...........W",
+      "W~~~~~~~~~~~W",
+      "WR..........W",
+      "WM....s.....W",
+      "WR..........W",
+      "W..E.....m..W",
+      "W.h.......h.W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Gaze Maze",
+    hint: "Three Medusas and a maze of rocks. There is always a safe path; find it before you step.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W..h.RCR.h..W",
+      "WM.R.R.R....W",
+      "WRR......R.RW",
+      "W...R..hR...W",
+      "W.R.R.R.R.R.W",
+      "W.R...M.R...W",
+      "W.RRR.R.R.R.W",
+      "W.h.R...R.hRW",
+      "WR...R.R.R.MW",
+      "W..R.....R.RW",
+      "W.h...L...h.W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Shooting Gallery",
+    hint: "Three Snakeys plug the gaps and Medusa guards the hall beyond. A Snakey is a fine shield, even as an egg.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W..........MW",
+      "WRRsRRsRRsRRW",
+      "W...........W",
+      "W.T.T...T.T.W",
+      "W..m.....m..W",
+      "W...........W",
+      "W.h.......h.W",
+      "W...........W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Four Gols",
+    hint: "Gols cover every side of the chest. Close one side with the framer, and take the last heart far from their lines.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....G.....W",
+      "W.h.......h.W",
+      "W..T.....T..W",
+      "W...........W",
+      "W...........W",
+      "WG....C....GW",
+      "W..E........W",
+      "W...........W",
+      "W..T.....T..W",
+      "W.h.......h.W",
+      "W.L...G.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Island Hopping",
+    hint: "A river splits the room in two and another guards the chest. Each Snakey is one raft.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "W~~~~~~~~~~~W",
+      "W.....~.....W",
+      "W.h...~...h.W",
+      "W.....~.....W",
+      "W..s..~..s..W",
+      "W.....~.....W",
+      "W.m...~..m..W",
+      "W.....~.....W",
+      "W..L..~.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Skull Bridge",
+    hint: "Skulls can't swim. Have your raft ready before the last heart wakes them.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W.T.T...T.T.W",
+      "W...........W",
+      "W~~~~~~~~~~~W",
+      "W.....s.....W",
+      "W...........W",
+      "W.K.......K.W",
+      "W...........W",
+      "W.h..m....h.W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Medusa Square",
+    hint: "Medusa in the middle splits the room into four. Three framers, three crossings.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "WM...RCR...MW",
+      "W...........W",
+      "W..h.....h..W",
+      "W.......E...W",
+      "W...........W",
+      "W.....M.....W",
+      "W...........W",
+      "W..E.....E..W",
+      "W..h.....h..W",
+      "W...........W",
+      "W..L........W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Gol Gauntlet",
+    hint: "The hearts are all above the Gols' row and the chest is below it. Turn the Snakeys into a wall first.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h.......h.W",
+      "W.....m.....W",
+      "W...h...h...W",
+      "W...........W",
+      "WG.........GW",
+      "WR.s.....s.RW",
+      "W...........W",
+      "W...........W",
+      "W.....C.....W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "One-Way Islands",
+    hint: "Each island has one way in and one way out. Clear each exit without blocking the other island's entrance.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "W...........W",
+      "WRRvRRRRR^RRW",
+      "WR...R.R.E.RW",
+      "WR.hE>.>.h.RW",
+      "WR...R.R...RW",
+      "WRRRRR.RRRRRW",
+      "W...........W",
+      "W.h.......h.W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Grand Keep",
+    hint: "Everything you have learned: a Leeper to push, a Medusa to block, a raft to build and Skulls to outrun.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W..K..C..K..W",
+      "W.h.......h.W",
+      "W~~~~~~~~~~~W",
+      "WR..........W",
+      "WM....s.....W",
+      "WR..........W",
+      "W...........W",
+      "W.h.......h.W",
+      "W.....p.....W",
+      "W..m........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Under the Gaze",
+    hint: "Two Medusas stare straight down from the top wall. Slide a framer under each one before you go near their columns.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.M..RCR..M.W",
+      "W...........W",
+      "W...........W",
+      "W..E.....E..W",
+      "W...........W",
+      "W...T...T...W",
+      "W.h.......h.W",
+      "W...........W",
+      "W....h.h....W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Hammer Time",
+    hint: "The grey heart gives you a Hammer. Press X to smash the rock in front of you, but pick a rock that keeps Medusa's view blocked.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W...........W",
+      "W.RRR...R.R.W",
+      "WMRhR.k.RhRMW",
+      "W.RRR...RRR.W",
+      "W...........W",
+      "W..h.....h..W",
+      "W...........W",
+      "W...TTTTT...W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Bridge Builder",
+    hint: "The teal heart gives one Bridge. Lay it over the river, then push the framer across it to shield yourself from Medusa.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "WM..........W",
+      "WR..........W",
+      "W~~~~~~~~~~~W",
+      "W...........W",
+      "W..E.....b..W",
+      "W.h.......h.W",
+      "W...........W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "River Ride",
+    hint: "The river flows north. Push an egg into the current and hop on before it drifts away.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C..h8.W",
+      "W.........8.W",
+      "W..h......8.W",
+      "W.........8RW",
+      "WRRRRRRRRR8RW",
+      "W.........8RW",
+      "W.........8RW",
+      "W.m...s...8RW",
+      "W.........8RW",
+      "W.h.......8RW",
+      "W.....L...8RW",
+      "WWWWWWWWWWWWW"] },
+  { name: "Skull Pen",
+    hint: "Skulls wake when the last heart is taken. Seal them in their alcoves with framers first.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W...........W",
+      "W.RRR...RRR.W",
+      "W.RKR...RKR.W",
+      "W...........W",
+      "W..E.....E..W",
+      "W...........W",
+      "W.h..h.h..h.W",
+      "W...........W",
+      "W.h.......h.W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Sleepy Sentries",
+    hint: "Leepers can't cross grass. Stand below each Leeper so it walks down its Medusa's column and falls asleep there.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "WR.M.RCR.M.RW",
+      "W.....g.....W",
+      "W.....g.....W",
+      "W..p..g..p..W",
+      "W.....g.....W",
+      "W.....g.....W",
+      "W.h...g...h.W",
+      "W.....g.....W",
+      "W..h..g..h..W",
+      "W.....g.....W",
+      "W....Lg.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Rocky Road",
+    hint: "Rocky charges whenever he sees you and boxes you in, but he can't walk on grass.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...g...h.W",
+      "W.....g.....W",
+      "W..ggggggg..W",
+      "W..g.....g..W",
+      "W..g..C..g..W",
+      "W..g.....g..W",
+      "W..ggggggg..W",
+      "W...........W",
+      "W.h...r...h.W",
+      "W...........W",
+      "W.h...L...h.W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Sand Trap",
+    hint: "Sand slows you down but not the Skulls. Take the last heart close to the chest.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W...........W",
+      "WSSSSSSSSSSSW",
+      "WSShSSSSShSSW",
+      "WSSSSSSSSSSSW",
+      "W.K.......K.W",
+      "W...........W",
+      "W.h..TTT..h.W",
+      "W...........W",
+      "W.h.......h.W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Lava Moat",
+    hint: "Lava stops everyone, and an egg pushed into it is gone. A Bridge works on lava too.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "WXXXXXXXXXXXW",
+      "W...........W",
+      "W.b.........W",
+      "W...........W",
+      "WXXXXXsXXXXXW",
+      "W...........W",
+      "W.h..m....h.W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Hammer and Leeper",
+    hint: "Medusa watches the only corridor. Break its rock, let the Leeper come to you, then push it back up as a shield.",
+    map: [
+      "WWWWWWWWWWDWW",
+      "WRRMRR....C.W",
+      "WRR.RR......W",
+      "WRhphR......W",
+      "WRR.RR......W",
+      "WRR.RR......W",
+      "WRRRRR......W",
+      "W...........W",
+      "W.k.....h...W",
+      "W...........W",
+      "W.....h.....W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Whirlpool",
+    hint: "The current runs in a ring around the chest island. Ride an egg in, and save the Bridge to get back out.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...m...h.W",
+      "W.....s.....W",
+      "W..6666662..W",
+      "W..8.....2..W",
+      "W..8.h...2..W",
+      "W..8..C..2..W",
+      "W..8...b.2..W",
+      "W..8.h...2..W",
+      "W..8444444..W",
+      "W.h.......h.W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Grass Fort",
+    hint: "Almas can't enter grass. Shoot from the safety of the fort, then make a run for the hearts.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "W.....a.....W",
+      "W...........W",
+      "W.TT.ggg.TT.W",
+      "W....gmg....W",
+      "W.TT.gLg.TT.W",
+      "W....gmg....W",
+      "W...........W",
+      "W.h...a...h.W",
+      "W...........W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Hammer Choice",
+    hint: "Two Medusas guard a heart sealed in rock and a third watches from below. Only one rock is safe to break.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "W.k.......h.W",
+      "W...........W",
+      "W...........W",
+      "WR....R..E.RW",
+      "WM...RhR...MW",
+      "WR.E..R....RW",
+      "W.L.........W",
+      "W.h.......h.W",
+      "W.....M.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Undertow",
+    hint: "The current carries you right past Medusa's column. Block her view before you set sail.",
+    map: [
+      "WWWWWWWWWWDWW",
+      "WRRRRRRRR.C.W",
+      "WRRRRRRRR...W",
+      "WRRRRRRRR.h.W",
+      "WRRRRRRRR...W",
+      "WRRRRRRRR.h.W",
+      "W6666666666RW",
+      "W.s.....RRRRW",
+      "W.......RRRRW",
+      "W...E...RRRRW",
+      "W.h.m...RRRRW",
+      "W.L...RMRRRRW",
+      "WWWWWWWWWWWWW"] },
+  { name: "Lava Lake",
+    hint: "The chest sits beyond the lava. Spend both Bridges there, and block Gol's row before the last heart.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "WXXXXXCXXXXXW",
+      "WXXXXXXXXXXXW",
+      "WXXXXXXXXXXXW",
+      "WG..........W",
+      "W..E.....b..W",
+      "W.h...h...h.W",
+      "W...........W",
+      "W.b.......h.W",
+      "W...........W",
+      "W...TTTTT...W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Grass Lane",
+    hint: "The Leeper can't leave its lane, because both exits are grass. Make it fall asleep where it blocks Medusa.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "W.h.......h.W",
+      "WRRRRRgRRRRRW",
+      "WM.........pW",
+      "WRRRgRgRRRRRW",
+      "W...........W",
+      "W...........W",
+      "W.h.......h.W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "The Lure",
+    hint: "Rocky blocks the only hallway north. Draw him out, circle around, and slip past.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "WRRRRR.RRRRRW",
+      "WRRRRR.RRRRRW",
+      "WRRRRRrRRRRRW",
+      "WRRRRR.RRRRRW",
+      "WRRRRR.RRRRRW",
+      "W...........W",
+      "W.h.T...T.h.W",
+      "W...........W",
+      "W.h...L...h.W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Snake Charmer",
+    hint: "Two Medusas, two Snakeys, two shots. An egg in the right lane is a shield, and it stays one after it hatches.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "WRRRRR.RRRRRW",
+      "WM..........W",
+      "WRRsRR.RRRRRW",
+      "W.h.......h.W",
+      "WRRRRR.RRRRRW",
+      "W..........MW",
+      "WRRRRR.RRsRRW",
+      "W.h..m....h.W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Tools of the Trade",
+    hint: "Bridge first, then Hammer. The order you collect them in matters.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h..RCR..h.W",
+      "W....R.R....W",
+      "W....RRR....W",
+      "W.k.........W",
+      "W~~~~~~~~~~~W",
+      "W...........W",
+      "W.h.......h.W",
+      "W....b......W",
+      "W...........W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "The Castle",
+    hint: "The last room: Rocky on the loose, a river to bridge, a heart walled in rock and Don Medusa pacing the throne hall.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "WRRRRRCRRRRRW",
+      "WO..........W",
+      "WRRRRE.RRRRRW",
+      "W.h...R..RhRW",
+      "W.........R.W",
+      "W~~~~~~~~~~~W",
+      "W...........W",
+      "W.k.......b.W",
+      "W.....r.....W",
+      "W...........W",
+      "W.h...L...h.W",
+      "WWWWWWWWWWWWW"] },
+];
+
+const T = 48, N = 13, MOVE = 0.16;
+const EGG_TIME = 7, RAFT_TIME = 5, RESPAWN = 9, SHOT_SPEED = 14, FIRE_SPEED = 10;
+const DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
+const OPP = { up: "down", down: "up", left: "right", right: "left" };
+const ARROW = { "^": "up", "v": "down", "<": "left", ">": "right" };
+const FLOW = { "8": "up", "2": "down", "4": "left", "6": "right" };
+const isWater = t => t === "~" || !!FLOW[t];
+const ETYPE = {
+  s: { kind: "snakey", shoot: true },
+  M: { kind: "medusa", shoot: false },
+  O: { kind: "don", shoot: false, dir: "right" },
+  Q: { kind: "don", shoot: false, dir: "down" },
+  G: { kind: "gol", shoot: true },
+  K: { kind: "skull", shoot: true, speed: 0.5 },
+  p: { kind: "leeper", shoot: true, speed: 0.5 },
+  a: { kind: "alma", shoot: true, speed: 0.45 },
+  r: { kind: "rocky", shoot: false, speed: 0.5 },
+};
+
+const VERSION = "v1.2";
+document.getElementById("version").textContent = VERSION;
+
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const $ = id => document.getElementById(id);
+
+let g = null;
+let deaths = 0;
+let done = new Set();
+try { done = new Set(JSON.parse(localStorage.getItem("jewelkeep.done") || "[]")); } catch (e) {}
+function saveDone() { try { localStorage.setItem("jewelkeep.done", JSON.stringify([...done])); } catch (e) {} }
+
+const key = (r, c) => r * N + c;
+
+function loadLevel(idx, retry) {
+  const lv = LEVELS[idx];
+  const grid = [], hearts = new Map(), framers = [], enemies = [];
+  let chest = null, lolo = null;
+  for (let r = 0; r < N; r++) {
+    const row = [];
+    for (let c = 0; c < N; c++) {
+      const ch = lv.map[r][c];
+      let t = ".";
+      if ("WDTR~H^v<>SgX8246".includes(ch)) t = ch;
+      else if ("hmkb".includes(ch)) hearts.set(key(r, c), ch);
+      else if (ch === "C") chest = { r, c, state: "closed" };
+      else if (ch === "E") framers.push(mover(r, c));
+      else if (ch === "L") lolo = Object.assign(mover(r, c), { dir: "up", shots: 0, hammer: 0, bridges: 0, dead: false, deadT: 0 });
+      else if (ETYPE[ch]) {
+        const ty = ETYPE[ch];
+        enemies.push(Object.assign(mover(r, c), {
+          kind: ty.kind, shoot: ty.shoot, speed: ty.speed || 0.5,
+          sr: r, sc: c, sdir: ty.dir || "down", dir: ty.dir || "down",
+          state: "normal", timer: 0, cd: 1, raft: false, fb: false, respawnT: 0,
+        }));
+      }
+      row.push(t);
+    }
+    grid.push(row);
+  }
+  g = { idx, grid, hearts, heartsTotal: hearts.size, heartsLeft: hearts.size, chest, framers, enemies, lolo,
+        shot: null, fireballs: [], particles: [], doorOpen: false, jewel: false, cleared: false,
+        time: 0, beam: null, paused: false, flash: 0 };
+  $("levelName").textContent = `Room ${idx + 1} · ${lv.name}`;
+  $("hint").textContent = lv.hint;
+  updateHud(true);
+  if (!retry) { showOverlay(null); setTrack(idx); }
+}
+
+function mover(r, c) { return { r, c, fr: r, fc: c, t: 1, dur: MOVE }; }
+function startMove(o, r, c, dur) { o.fr = o.r; o.fc = o.c; o.r = r; o.c = c; o.t = 0; o.dur = dur || MOVE; }
+function advance(o, dt) { if (o.t < 1) { o.t = Math.min(1, o.t + dt / o.dur); return o.t >= 1; } return false; }
+function rpos(o) { return { y: o.fr + (o.r - o.fr) * o.t, x: o.fc + (o.c - o.fc) * o.t }; }
+function vtile(o) { const p = rpos(o); return { r: Math.round(p.y), c: Math.round(p.x) }; }
+
+function terr(r, c) { return (r < 0 || c < 0 || r >= N || c >= N) ? "W" : g.grid[r][c]; }
+function arrowOK(r, c, dir) { const a = ARROW[terr(r, c)]; return !a || a !== OPP[dir]; }
+function framerAt(r, c) { return g.framers.find(f => f.r === r && f.c === c); }
+function enemyAt(r, c, ex) { return g.enemies.find(e => e !== ex && (e.state !== "gone" && e.state !== "vanished") && e.r === r && e.c === c); }
+function chestAt(r, c) { return g.chest && g.chest.r === r && g.chest.c === c; }
+const SOLID = "WDRT";
+
+// ---------- Poncho ----------
+function tryMove(dir) {
+  const L = g.lolo; L.dir = dir;
+  const [dr, dc] = DIRS[dir], nr = L.r + dr, nc = L.c + dc;
+  if (!arrowOK(L.r, L.c, dir) || !arrowOK(nr, nc, dir)) return;
+  const t = terr(nr, nc);
+  if (t === "D") { if (g.doorOpen) startMove(L, nr, nc); return; }
+  if (SOLID.includes(t)) return;
+  if (chestAt(nr, nc) && g.chest.state === "closed") return;
+  if (t === "X") return;
+  const e = enemyAt(nr, nc);
+  const dur = t === "S" ? MOVE * 2 : MOVE;
+  if (isWater(t)) { if (e && e.state === "egg" && e.raft) startMove(L, nr, nc); return; }
+  if (e) {
+    const pushable = (e.state === "egg" && !e.raft) || e.state === "asleep";
+    if (pushable && tryPush(e, nr, nc, dir, e.state === "egg")) startMove(L, nr, nc, dur);
+    return;
+  }
+  const f = framerAt(nr, nc);
+  if (f) { if (tryPush(f, nr, nc, dir, false)) startMove(L, nr, nc, dur); return; }
+  startMove(L, nr, nc, dur);
+}
+
+function usePower() {
+  const L = g.lolo;
+  if (!g || g.paused || L.dead || g.cleared || L.t < 1) return;
+  const [dr, dc] = DIRS[L.dir], r = L.r + dr, c = L.c + dc, t = terr(r, c);
+  if (L.hammer > 0 && t === "R" && r > 0 && c > 0 && r < N - 1 && c < N - 1) {
+    g.grid[r][c] = "."; L.hammer--; burst(c, r, "#b4b9c4", 18); sfx("hammer");
+  } else if (L.bridges > 0 && (isWater(t) || t === "X") && !enemyAt(r, c)) {
+    g.grid[r][c] = "H"; L.bridges--; burst(c, r, "#c48a4a", 14); sfx("push");
+  } else return;
+  updateHud();
+}
+
+function tryPush(o, r, c, dir, isEgg) {
+  const [dr, dc] = DIRS[dir], r2 = r + dr, c2 = c + dc;
+  if (!arrowOK(r2, c2, dir)) return false;
+  const t = terr(r2, c2);
+  if (SOLID.includes(t) || chestAt(r2, c2) || g.hearts.has(key(r2, c2))) return false;
+  if (framerAt(r2, c2) || enemyAt(r2, c2)) return false;
+  if (t === "X") {
+    if (!isEgg) return false;
+    o.state = "gone"; o.raft = false; o.respawnT = RESPAWN; burst(c2, r2, "#ff7a1f", 14); sfx("push");
+    return true;
+  }
+  if (isWater(t)) {
+    if (!isEgg) return false;
+    o.raft = true; o.timer = RAFT_TIME; o.drift = 0.45;
+  }
+  startMove(o, r2, c2); sfx("push");
+  return true;
+}
+
+function fire() {
+  const L = g.lolo;
+  if (!g || g.paused || L.dead || g.cleared || g.shot || L.shots <= 0) return;
+  L.shots--; sfx("shot");
+  g.shot = { x: L.c, y: L.r, dir: L.dir, lr: L.r, lc: L.c };
+  updateHud();
+}
+
+function onArrive() {
+  const L = g.lolo, k = key(L.r, L.c);
+  if (terr(L.r, L.c) === "D") { clearLevel(); return; }
+  if (g.hearts.has(k)) {
+    const kind = g.hearts.get(k), magic = kind !== "h";
+    g.hearts.delete(k); g.heartsLeft--;
+    if (kind === "m") L.shots += 2;
+    if (kind === "k") L.hammer++;
+    if (kind === "b") L.bridges++;
+    sfx(magic ? "magic" : "heart");
+    burst(L.c, L.r, magic ? "#c9a7ff" : "#ff4d6d", 14);
+    if (g.heartsLeft === 0 && g.chest) { g.chest.state = "open"; sfx("chest"); burst(g.chest.c, g.chest.r, "#ffd166", 20); }
+    updateHud();
+  }
+  if (chestAt(L.r, L.c) && g.chest.state === "open") {
+    g.chest.state = "empty"; g.jewel = true; sfx("jewel"); g.doorOpen = true; g.flash = 0.5;
+    burst(L.c, L.r, "#7fe7ff", 24);
+    for (const e of g.enemies) if (e.state !== "gone" && e.state !== "vanished") { burst(rpos(e).x, rpos(e).y, "#ffffff", 10); e.state = "vanished"; }
+    g.fireballs = []; g.shot = null;
+  }
+}
+
+function killLolo(beamFrom) {
+  const L = g.lolo; if (L.dead || g.cleared) return;
+  L.dead = true; L.deadT = 0; sfx("die");
+  if (beamFrom) g.beam = beamFrom;
+  burst(rpos(L).x, rpos(L).y, "#8fd3ff", 18);
+}
+
+function clearLevel() {
+  g.cleared = true; sfx("clear");
+  done.add(g.idx); saveDone(); buildMenu();
+  const last = g.idx === LEVELS.length - 1;
+  $("clearTitle").textContent = last ? "The keep is yours!" : `Room ${g.idx + 1} cleared`;
+  $("clearText").textContent = last
+    ? `Poncho carried every jewel out of the keep with ${deaths} ${deaths === 1 ? "retry" : "retries"}. Replay any room from the level list.`
+    : `On to room ${g.idx + 2}: ${LEVELS[g.idx + 1].name}.`;
+  $("btnNext").textContent = last ? "Back to levels" : "Next room";
+  showOverlay("ovClear");
+}
+
+// ---------- Monsters ----------
+function enemyCanEnter(e, r, c, dir, fr, fc) {
+  if (!arrowOK(fr, fc, dir) || !arrowOK(r, c, dir)) return false;
+  const t = terr(r, c);
+  if (SOLID.includes(t) || isWater(t) || t === "X" || t === "g") return false;
+  if (g.hearts.has(key(r, c)) || chestAt(r, c) || framerAt(r, c) || enemyAt(r, c, e)) return false;
+  return true;
+}
+
+function bfsStep(e) {
+  const L = g.lolo, goal = key(L.r, L.c), start = key(e.r, e.c);
+  const prev = new Map([[start, null]]); const q = [[e.r, e.c]];
+  while (q.length) {
+    const [r, c] = q.shift();
+    for (const d of ["up", "down", "left", "right"]) {
+      const nr = r + DIRS[d][0], nc = c + DIRS[d][1], k = key(nr, nc);
+      if (prev.has(k)) continue;
+      if (k === goal) {
+        if (!arrowOK(r, c, d) || !arrowOK(nr, nc, d)) continue;
+      } else if (!enemyCanEnter(e, nr, nc, d, r, c)) continue;
+      prev.set(k, { k: key(r, c), d });
+      if (k === goal) {
+        let cur = k, step = prev.get(k);
+        while (step.k !== start) { cur = step.k; step = prev.get(cur); }
+        return { r: Math.floor(cur / N), c: cur % N, dir: step.d };
+      }
+      q.push([nr, nc]);
+    }
+  }
+  return null;
+}
+
+function sees(r1, c1, r2, c2, self) {
+  if (r1 !== r2 && c1 !== c2) return false;
+  const dr = Math.sign(r2 - r1), dc = Math.sign(c2 - c1);
+  let r = r1 + dr, c = c1 + dc;
+  while (r !== r2 || c !== c2) {
+    const t = terr(r, c);
+    if (t === "W" || t === "D" || t === "R") return false;
+    if (framerAt(r, c) || chestAt(r, c)) return false;
+    const e = enemyAt(r, c, self);
+    if (e && !e.raft) return false;
+    r += dr; c += dc;
+  }
+  return true;
+}
+
+function dirTo(r1, c1, r2, c2) {
+  if (r1 === r2) return c2 > c1 ? "right" : "left";
+  return r2 > r1 ? "down" : "up";
+}
+
+function updateEnemy(e, dt) {
+  advance(e, dt);
+  const L = g.lolo;
+  if (e.state === "vanished") return;
+  if (e.state === "gone") {
+    e.respawnT -= dt;
+    if (e.respawnT <= 0) {
+      if (!(L.r === e.sr && L.c === e.sc) && !framerAt(e.sr, e.sc) && !enemyAt(e.sr, e.sc, e)) {
+        Object.assign(e, mover(e.sr, e.sc), { state: "normal", cd: 1, dir: e.sdir, fb: false });
+        burst(e.sc, e.sr, "#ffffff", 10);
+      } else e.respawnT = 0.5;
+    }
+    return;
+  }
+  if (e.state === "egg") {
+    const flow = e.raft && FLOW[terr(e.r, e.c)];
+    if (flow) {
+      e.drift -= dt;
+      if (e.drift <= 0 && e.t >= 1) {
+        e.drift = 0.45;
+        const nr = e.r + DIRS[flow][0], nc = e.c + DIRS[flow][1];
+        if (isWater(terr(nr, nc)) && !enemyAt(nr, nc, e) && !framerAt(nr, nc)) {
+          const carry = L.r === e.r && L.c === e.c && L.t >= 1;
+          startMove(e, nr, nc, 0.4);
+          if (carry) startMove(L, nr, nc, 0.4);
+        }
+      }
+      return;
+    }
+    e.timer -= dt;
+    if (e.timer <= 0) {
+      if (e.raft) {
+        if (L.r === e.r && L.c === e.c) killLolo();
+        burst(e.c, e.r, "#9fd0ff", 12);
+        e.raft = false; e.state = "gone"; e.respawnT = RESPAWN;
+      } else { e.state = "normal"; e.cd = 0.8; }
+    }
+    return;
+  }
+  if (e.state === "asleep" || L.dead) return;
+  const awake = !(e.kind === "gol" || e.kind === "skull") || g.heartsLeft === 0;
+  e.awake = awake;
+  const lt = vtile(L);
+  switch (e.kind) {
+    case "snakey":
+      e.dir = Math.abs(lt.c - e.c) >= Math.abs(lt.r - e.r) ? (lt.c < e.c ? "left" : "right") : (lt.r < e.r ? "up" : "down");
+      break;
+    case "don":
+      e.cd -= dt;
+      if (e.cd <= 0 && e.t >= 1) {
+        e.cd = 0.5;
+        for (let i = 0; i < 2; i++) {
+          const [dr, dc] = DIRS[e.dir], nr = e.r + dr, nc = e.c + dc;
+          if (enemyCanEnter(e, nr, nc, e.dir, e.r, e.c) && !(L.r === nr && L.c === nc)) { startMove(e, nr, nc, 0.45); break; }
+          e.dir = OPP[e.dir];
+        }
+      }
+      // falls through to gaze
+    case "medusa": {
+      const et = vtile(e);
+      if (sees(et.r, et.c, lt.r, lt.c, e)) killLolo({ x1: rpos(e).x, y1: rpos(e).y, e });
+      break;
+    }
+    case "gol":
+      e.cd -= dt;
+      if (awake && !e.fb && e.cd <= 0 && sees(e.r, e.c, lt.r, lt.c, e) && !(lt.r === e.r && lt.c === e.c)) {
+        const d = dirTo(e.r, e.c, lt.r, lt.c);
+        e.dir = d; e.fb = true;
+        g.fireballs.push({ x: e.c, y: e.r, dir: d, owner: e, lr: e.r, lc: e.c });
+      }
+      break;
+    case "rocky":
+      e.cd -= dt;
+      if (e.cd <= 0 && e.t >= 1) {
+        const charge = (e.r === L.r || e.c === L.c) && sees(e.r, e.c, L.r, L.c, e);
+        e.cd = charge ? 0.16 : e.speed;
+        let st = null;
+        if (charge) {
+          const d = dirTo(e.r, e.c, L.r, L.c), nr = e.r + DIRS[d][0], nc = e.c + DIRS[d][1];
+          if (enemyCanEnter(e, nr, nc, d, e.r, e.c)) st = { r: nr, c: nc, dir: d };
+        } else st = bfsStep(e);
+        if (st && !(st.r === L.r && st.c === L.c)) { e.dir = st.dir; startMove(e, st.r, st.c, e.cd * 0.9); }
+      }
+      break;
+    case "leeper":
+      if (Math.abs(L.r - e.r) + Math.abs(L.c - e.c) === 1 && e.t >= 1) { e.state = "asleep"; break; }
+      // falls through
+    case "skull":
+    case "alma":
+      if (!awake) break;
+      e.cd -= dt;
+      if (e.cd <= 0 && e.t >= 1) {
+        const roll = e.kind === "alma" && e.r === L.r && sees(e.r, e.c, L.r, L.c, e);
+        e.cd = roll ? 0.18 : e.speed;
+        const st = bfsStep(e);
+        if (st && !(e.kind === "leeper" && st.r === L.r && st.c === L.c)) { e.dir = st.dir; startMove(e, st.r, st.c, e.cd * 0.85); }
+      }
+      if (e.kind !== "leeper") {
+        const a = rpos(e), b = rpos(L);
+        if (Math.hypot(a.x - b.x, a.y - b.y) < 0.7) killLolo();
+      }
+      break;
+  }
+}
+
+function hitEnemy(e, dir) {
+  const p = rpos(e);
+  if (!e.shoot) { burst(p.x, p.y, "#c9a7ff", 6); return; }
+  if (e.state === "egg") {
+    e.state = "gone"; e.respawnT = RESPAWN;
+    const [dr, dc] = DIRS[dir];
+    g.particles.push({ x: p.x, y: p.y, vx: dc * 16, vy: dr * 16 - 2, life: 0.8, egg: true });
+    return;
+  }
+  sfx("egg"); e.state = "egg"; e.timer = EGG_TIME; e.t = 1; e.fr = e.r; e.fc = e.c; e.fb = false;
+  burst(p.x, p.y, "#ffffff", 8);
+}
+
+function blocksProjectile(r, c) {
+  const t = terr(r, c);
+  return t === "W" || t === "D" || t === "R" || !!framerAt(r, c) || (chestAt(r, c) && g.chest.state !== "empty");
+}
+
+function updateShot(dt) {
+  const s = g.shot; if (!s) return;
+  let dist = SHOT_SPEED * dt; const [dr, dc] = DIRS[s.dir];
+  while (dist > 0) {
+    const st = Math.min(0.2, dist); dist -= st; s.x += dc * st; s.y += dr * st;
+    const r = Math.round(s.y), c = Math.round(s.x);
+    if (r === s.lr && c === s.lc) continue;
+    s.lr = r; s.lc = c;
+    if (blocksProjectile(r, c)) { burst(s.x, s.y, "#8fd3ff", 5); g.shot = null; return; }
+    const e = g.enemies.find(e => (e.state === "normal" || e.state === "asleep" || (e.state === "egg" && !e.raft)) &&
+      ((e.r === r && e.c === c) || (vtile(e).r === r && vtile(e).c === c)));
+    if (e) { hitEnemy(e, s.dir); g.shot = null; return; }
+  }
+}
+
+function updateFireballs(dt) {
+  const L = g.lolo, lp = rpos(L);
+  g.fireballs = g.fireballs.filter(f => {
+    let dist = FIRE_SPEED * dt; const [dr, dc] = DIRS[f.dir];
+    while (dist > 0) {
+      const st = Math.min(0.2, dist); dist -= st; f.x += dc * st; f.y += dr * st;
+      if (!L.dead && Math.hypot(f.x - lp.x, f.y - lp.y) < 0.55) { killLolo(); f.owner.fb = false; f.owner.cd = 1; return false; }
+      const r = Math.round(f.y), c = Math.round(f.x);
+      if (r === f.lr && c === f.lc) continue;
+      f.lr = r; f.lc = c;
+      const e = enemyAt(r, c, f.owner);
+      if (blocksProjectile(r, c) || (e && !e.raft)) { burst(f.x, f.y, "#ff9f43", 6); f.owner.fb = false; f.owner.cd = 0.9; return false; }
+    }
+    return true;
+  });
+}
+
+// ---------- Particles ----------
+function burst(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = 1.5 + Math.random() * 3;
+    g.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.5 + Math.random() * 0.4, color });
+  }
+}
+function updateParticles(dt) {
+  g.particles = g.particles.filter(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; return p.life > 0; });
+}
+
+// ---------- Main update ----------
+function update(dt) {
+  if (!g || g.paused) return;
+  g.time += dt;
+  if (g.flash > 0) g.flash -= dt;
+  updateParticles(dt);
+  const L = g.lolo;
+  if (L.dead) {
+    L.deadT += dt;
+    if (L.deadT > 1.3) { deaths++; loadLevel(g.idx, true); }
+    return;
+  }
+  if (g.cleared) return;
+  if (advance(L, dt)) onArrive();
+  if (g.cleared) return;
+  if (L.t >= 1 && isWater(terr(L.r, L.c)) && !g.enemies.some(e => e.raft && e.state === "egg" && e.r === L.r && e.c === L.c)) killLolo();
+  if (L.t >= 1) { const d = heldDir(); if (d) tryMove(d); }
+  for (const f of g.framers) advance(f, dt);
+  for (const e of g.enemies) updateEnemy(e, dt);
+  updateShot(dt);
+  updateFireballs(dt);
+}
+
+// ---------- Drawing ----------
+function heartPath(cx, cy, s) {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + s * 0.9);
+  ctx.bezierCurveTo(cx - s * 1.3, cy + s * 0.1, cx - s * 0.9, cy - s * 0.95, cx, cy - s * 0.35);
+  ctx.bezierCurveTo(cx + s * 0.9, cy - s * 0.95, cx + s * 1.3, cy + s * 0.1, cx, cy + s * 0.9);
+  ctx.closePath();
+}
+function circle(x, y, r, col) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+function ell(x, y, rx, ry, col) { ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); }
+function box(x, y, w, h, r, col) { ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); }
+
+function drawFloor(x, y, r, c) {
+  ctx.fillStyle = (r + c) % 2 ? "#8cc865" : "#82bf5c";
+  ctx.fillRect(x, y, T, T);
+  ctx.fillStyle = "#6fa84b";
+  const s = (r * 7 + c * 13) % 5;
+  ctx.fillRect(x + 8 + s * 5, y + 10 + s * 3, 2, 5);
+  ctx.fillRect(x + 11 + s * 5, y + 9 + s * 3, 2, 6);
+  ctx.fillRect(x + 30 - s * 2, y + 32 - s, 2, 5);
+}
+function drawWall(x, y, r, c) {
+  ctx.fillStyle = "#4b3f80"; ctx.fillRect(x, y, T, T);
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, T, T); ctx.clip();
+  ctx.fillStyle = "#5d50a0";
+  const off = r % 2 ? 0 : 12;
+  for (let i = 0; i < 2; i++) for (let j = -1; j < 2; j++) ctx.fillRect(x + j * 24 + off + 2, y + i * 24 + 2, 20, 9);
+  ctx.restore();
+  ctx.fillStyle = "#3a3166";
+  ctx.fillRect(x, y + 22, T, 2); ctx.fillRect(x, y + 46, T, 2);
+}
+function drawWater(x, y, r, c) {
+  ctx.fillStyle = "#2b6cc4"; ctx.fillRect(x, y, T, T);
+  ctx.strokeStyle = "#5c9ae6"; ctx.lineWidth = 2;
+  const ph = g.time * 2 + c;
+  for (let i = 0; i < 3; i++) {
+    const yy = y + 10 + i * 14 + Math.sin(ph + i) * 2;
+    ctx.beginPath(); ctx.moveTo(x + 4, yy);
+    ctx.quadraticCurveTo(x + 14, yy - 4, x + 24, yy); ctx.quadraticCurveTo(x + 34, yy + 4, x + 44, yy); ctx.stroke();
+  }
+}
+function drawTile(r, c) {
+  const x = c * T, y = r * T, t = g.grid[r][c];
+  if (t === "W") return drawWall(x, y, r, c);
+  if (t === "D") {
+    drawWall(x, y, r, c);
+    box(x + 6, y + 4, 36, 44, [16, 16, 0, 0], "#2a2246");
+    if (g.doorOpen) {
+      box(x + 9, y + 7, 30, 41, [14, 14, 0, 0], "#0b0816");
+      const gl = 0.4 + 0.3 * Math.sin(g.time * 5);
+      ctx.fillStyle = `rgba(255,209,102,${gl})`; ctx.beginPath(); ctx.roundRect(x + 13, y + 14, 22, 34, [11, 11, 0, 0]); ctx.fill();
+    } else {
+      box(x + 9, y + 7, 30, 41, [14, 14, 0, 0], "#8b5a2b");
+      ctx.fillStyle = "#5e3a18"; for (let i = 0; i < 3; i++) ctx.fillRect(x + 15 + i * 8, y + 10, 3, 38);
+      circle(x + 33, y + 30, 2.5, "#ffd166");
+    }
+    return;
+  }
+  if (t === "~") return drawWater(x, y, r, c);
+  if (FLOW[t]) {
+    drawWater(x, y, r, c);
+    ctx.save(); ctx.translate(x + 24, y + 24);
+    ctx.rotate({ up: 0, right: Math.PI / 2, down: Math.PI, left: -Math.PI / 2 }[FLOW[t]]);
+    ctx.strokeStyle = "rgba(220,240,255,.75)"; ctx.lineWidth = 3;
+    const off = ((g.time * 20) % 16) - 8;
+    for (const k of [-8, 8]) { const yy = k - off; ctx.beginPath(); ctx.moveTo(-9, yy + 6); ctx.lineTo(0, yy - 3); ctx.lineTo(9, yy + 6); ctx.stroke(); }
+    ctx.restore();
+    return;
+  }
+  if (t === "X") {
+    ctx.fillStyle = "#c2361b"; ctx.fillRect(x, y, T, T);
+    const ph = g.time * 1.5 + r * 0.7 + c * 1.3;
+    ctx.fillStyle = "#ff7a1f";
+    for (let i = 0; i < 3; i++) { const yy = y + 8 + i * 15, w = 14 + Math.sin(ph + i * 2) * 6; ell(x + 12 + (i % 2) * 22, yy + 4, w, 4, "#ff7a1f"); }
+    circle(x + 30 + Math.sin(ph) * 4, y + 22, 3, "#ffd166");
+    return;
+  }
+  if (t === "H") {
+    const under = isWater(terr(r - 1, c)) || isWater(terr(r + 1, c)) || isWater(terr(r, c - 1)) || isWater(terr(r, c + 1));
+    if (under || !(terr(r - 1, c) === "X" || terr(r + 1, c) === "X" || terr(r, c - 1) === "X" || terr(r, c + 1) === "X")) drawWater(x, y, r, c);
+    else { ctx.fillStyle = "#c2361b"; ctx.fillRect(x, y, T, T); }
+    const sideL = terr(r, c - 1), sideR = terr(r, c + 1);
+    const vert = !(isWater(terr(r - 1, c)) || terr(r - 1, c) === "X") || !(isWater(terr(r + 1, c)) || terr(r + 1, c) === "X") || isWater(sideL) || isWater(sideR) || sideL === "X" || sideR === "X";
+    ctx.save(); ctx.translate(x + 24, y + 24); if (!vert) ctx.rotate(Math.PI / 2);
+    ctx.fillStyle = "#a8743f"; ctx.fillRect(-18, -24, 36, 48);
+    ctx.fillStyle = "#7d5228"; for (let i = 0; i < 4; i++) ctx.fillRect(-18, -24 + i * 12 + 10, 36, 2);
+    ctx.fillStyle = "#5e3a18"; ctx.fillRect(-21, -24, 4, 48); ctx.fillRect(17, -24, 4, 48);
+    ctx.restore();
+    return;
+  }
+  if (t === "S") {
+    ctx.fillStyle = (r + c) % 2 ? "#e6cf8f" : "#dfc684"; ctx.fillRect(x, y, T, T);
+    ctx.fillStyle = "#c4a964";
+    for (let i = 0; i < 6; i++) { const s = (r * 31 + c * 17 + i * 11) % 40; ctx.fillRect(x + 4 + s, y + 4 + ((s * 7 + i * 13) % 40), 2, 2); }
+    return;
+  }
+  drawFloor(x, y, r, c);
+  if (t === "g") {
+    ctx.fillStyle = "#3d8a2f"; ctx.fillRect(x + 2, y + 2, T - 4, T - 4);
+    ctx.fillStyle = "#58ad3e";
+    for (let i = 0; i < 7; i++) { const bx = x + 5 + i * 6, h = 14 + ((i * 7 + r + c) % 3) * 5, sway = Math.sin(g.time * 2 + i + c) * 1.5; ctx.beginPath(); ctx.moveTo(bx, y + 44); ctx.lineTo(bx + 3 + sway, y + 44 - h); ctx.lineTo(bx + 5, y + 44); ctx.fill(); }
+  } else if (t === "R") {
+    ell(x + 24, y + 38, 19, 7, "rgba(0,0,0,.18)");
+    box(x + 5, y + 7, 38, 34, 12, "#6d7180");
+    box(x + 7, y + 7, 33, 28, 11, "#9599a8");
+    box(x + 12, y + 11, 14, 8, 4, "#c3c7d3");
+  } else if (t === "T") {
+    ctx.fillStyle = "#6b4423"; ctx.fillRect(x + 20, y + 28, 8, 14);
+    ell(x + 24, y + 42, 15, 4, "rgba(0,0,0,.2)");
+    circle(x + 24, y + 20, 17, "#256b33");
+    circle(x + 17, y + 22, 11, "#2f8040");
+    circle(x + 30, y + 17, 10, "#3a9a4c");
+    circle(x + 22, y + 13, 6, "#5bbf6a");
+  } else if (ARROW[t]) {
+    box(x + 4, y + 4, 40, 40, 6, "#5f9a45");
+    ctx.save(); ctx.translate(x + 24, y + 24);
+    ctx.rotate({ up: 0, right: Math.PI / 2, down: Math.PI, left: -Math.PI / 2 }[ARROW[t]]);
+    ctx.fillStyle = "#f6f1d0";
+    ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(13, 0); ctx.lineTo(5, 0); ctx.lineTo(5, 14); ctx.lineTo(-5, 14); ctx.lineTo(-5, 0); ctx.lineTo(-13, 0); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawHeart(r, c, kind) {
+  const x = c * T, y = r * T, b = Math.sin(g.time * 4 + r + c) * 1.5, magic = kind !== "h";
+  box(x + 7, y + 7, 34, 34, 5, "#b8862b");
+  box(x + 9, y + 9, 30, 30, 4, { h: "#ffe9b3", m: "#5b3fc4", k: "#4a5568", b: "#1f7a8c" }[kind]);
+  heartPath(x + 24, y + 24 + b * 0.3, 10 + b * 0.4);
+  ctx.fillStyle = "#e8344f"; ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillRect(x + 18, y + 18, 3, 3);
+  if (magic) {
+    const s = 0.5 + 0.5 * Math.sin(g.time * 6 + c);
+    ctx.fillStyle = `rgba(255,255,255,${s})`;
+    ctx.fillRect(x + 32, y + 11, 2, 6); ctx.fillRect(x + 30, y + 13, 6, 2);
+  }
+  if (kind === "k") { ctx.fillStyle = "#d9dde6"; ctx.fillRect(x + 11, y + 30, 9, 5); ctx.fillStyle = "#a8743f"; ctx.fillRect(x + 14, y + 33, 3, 6); }
+  if (kind === "b") { ctx.fillStyle = "#c48a4a"; for (let i = 0; i < 3; i++) ctx.fillRect(x + 11, y + 29 + i * 3, 10, 2); }
+}
+
+function drawChest() {
+  const ch = g.chest; if (!ch) return;
+  const x = ch.c * T, y = ch.r * T;
+  ell(x + 24, y + 42, 18, 4, "rgba(0,0,0,.2)");
+  if (ch.state === "closed") {
+    box(x + 6, y + 18, 36, 24, 3, "#8b5a2b");
+    box(x + 6, y + 9, 36, 13, [8, 8, 2, 2], "#a86d35");
+    ctx.fillStyle = "#ffd166"; ctx.fillRect(x + 6, y + 20, 36, 3); ctx.fillRect(x + 21, y + 17, 6, 9);
+  } else {
+    box(x + 6, y + 4, 36, 10, [8, 8, 2, 2], "#a86d35");
+    box(x + 6, y + 18, 36, 24, 3, "#8b5a2b");
+    box(x + 9, y + 15, 30, 8, 2, "#2b1a0c");
+    ctx.fillStyle = "#ffd166"; ctx.fillRect(x + 6, y + 26, 36, 3);
+    if (ch.state === "open") {
+      const gl = Math.sin(g.time * 6);
+      ctx.save(); ctx.translate(x + 24, y + 14 + gl);
+      ctx.fillStyle = "#58d6ff"; ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(9, -2); ctx.lineTo(0, 9); ctx.lineTo(-9, -2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#c9f3ff"; ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(4, -2); ctx.lineTo(-4, -2); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+function drawFramer(f) {
+  const p = rpos(f), x = p.x * T, y = p.y * T;
+  ell(x + 24, y + 43, 18, 4, "rgba(0,0,0,.2)");
+  box(x + 4, y + 4, 40, 40, 4, "#0f6e4e");
+  box(x + 4, y + 4, 37, 37, 4, "#22b07f");
+  box(x + 9, y + 9, 27, 27, 2, "#14895f");
+  ctx.fillStyle = "#7af0c3";
+  ctx.beginPath(); ctx.moveTo(x + 22, y + 13); ctx.lineTo(x + 31, y + 22); ctx.lineTo(x + 22, y + 31); ctx.lineTo(x + 13, y + 22); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.fillRect(x + 6, y + 6, 14, 3);
+}
+
+function eyes(cx, cy, dir, gap, col) {
+  const [dy, dx] = DIRS[dir] || [1, 0];
+  for (const s of [-1, 1]) {
+    ell(cx + s * gap + dx * 2, cy + dy * 2, 4, 5, "#fff");
+    circle(cx + s * gap + dx * 4, cy + dy * 3, 2.2, col || "#111");
+  }
+}
+
+function drawEnemy(e) {
+  if (e.state === "gone" || e.state === "vanished") return;
+  const p = rpos(e), x = p.x * T, y = p.y * T, cx = x + 24, cy = y + 26;
+  if (e.state === "egg") {
+    let rot = 0, bob = 0;
+    if (e.timer < 2) rot = Math.sin(g.time * 30) * 0.15;
+    if (e.raft) { bob = Math.sin(g.time * 4) * 2; ell(cx, cy + 12, 20, 6, "rgba(255,255,255,.35)"); }
+    ctx.save(); ctx.translate(cx, cy + bob); ctx.rotate(rot);
+    ell(0, 14, 15, 4, "rgba(0,0,0,.2)");
+    ctx.fillStyle = "#fbf7ee"; ctx.beginPath(); ctx.ellipse(0, 0, 15, 18, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#c9c1ad"; ctx.lineWidth = 2; ctx.stroke();
+    circle(-5, -5, 3, "#d9cfb6"); circle(6, 4, 2.5, "#d9cfb6"); circle(-2, 9, 2, "#d9cfb6");
+    ctx.restore();
+    return;
+  }
+  ell(cx, y + 42, 15, 4, "rgba(0,0,0,.2)");
+  switch (e.kind) {
+    case "snakey": {
+      circle(cx, cy + 8, 13, "#3f9a3f"); circle(cx, cy + 8, 8, "#56b856");
+      circle(cx, cy - 6, 11, "#4caf50");
+      eyes(cx, cy - 8, e.dir, 5);
+      ctx.fillStyle = "#e8344f"; ctx.fillRect(cx - 1, cy + 2, 2, 5);
+      break;
+    }
+    case "medusa": case "don": {
+      const body = e.kind === "don" ? "#c0392b" : "#8e5bd6", dark = e.kind === "don" ? "#7d1f15" : "#5b34a0";
+      for (let i = 0; i < 6; i++) {
+        const a = Math.PI + (i / 5) * Math.PI, w = Math.sin(g.time * 6 + i) * 2;
+        circle(cx + Math.cos(a) * 15 + w, cy - 4 + Math.sin(a) * 14, 4.5, "#3f9a3f");
+      }
+      circle(cx, cy, 15, dark); circle(cx, cy - 1, 13, body);
+      for (const s of [-1, 1]) { ell(cx + s * 6, cy - 2, 4.5, 5, "#ffe066"); circle(cx + s * 6, cy - 1, 2.2, "#c0001a"); }
+      ctx.fillStyle = dark; ctx.fillRect(cx - 4, cy + 7, 8, 2);
+      break;
+    }
+    case "gol": {
+      box(cx - 15, cy - 14, 30, 30, 6, "#6e5d4b"); box(cx - 13, cy - 14, 26, 26, 5, "#8d7b68");
+      ctx.fillStyle = "#6e5d4b";
+      ctx.beginPath(); ctx.moveTo(cx - 13, cy - 12); ctx.lineTo(cx - 17, cy - 22); ctx.lineTo(cx - 7, cy - 14); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + 13, cy - 12); ctx.lineTo(cx + 17, cy - 22); ctx.lineTo(cx + 7, cy - 14); ctx.fill();
+      const ec = e.awake ? (Math.sin(g.time * 10) > 0 ? "#ff3b1f" : "#ff9f43") : "#3d3226";
+      ctx.fillStyle = ec; ctx.fillRect(cx - 9, cy - 5, 6, 4); ctx.fillRect(cx + 3, cy - 5, 6, 4);
+      ctx.fillStyle = "#3d3226"; ctx.fillRect(cx - 7, cy + 5, 14, 3);
+      break;
+    }
+    case "skull": {
+      const shake = e.awake ? Math.sin(g.time * 20) : 0;
+      circle(cx + shake, cy - 3, 14, "#ecebe4");
+      box(cx - 8 + shake, cy + 6, 16, 9, 2, "#ecebe4");
+      const ec = e.awake ? "#ff2a4a" : "#1c1c1c";
+      circle(cx - 5 + shake, cy - 3, 4, ec); circle(cx + 5 + shake, cy - 3, 4, ec);
+      ctx.fillStyle = "#555"; for (let i = 0; i < 3; i++) ctx.fillRect(cx - 5 + i * 4 + shake, cy + 9, 2, 6);
+      break;
+    }
+    case "leeper": {
+      const sq = e.state === "asleep" ? 0 : Math.sin(g.time * 8) * 2;
+      ell(cx, cy + 2, 16 + sq, 14 - sq, "#5fbf3f"); ell(cx, cy + 1, 13 + sq, 11 - sq, "#7ed957");
+      if (e.state === "asleep") {
+        ctx.strokeStyle = "#1c3d12"; ctx.lineWidth = 2;
+        for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(cx + s * 6 - 4, cy - 2); ctx.lineTo(cx + s * 6 + 4, cy - 2); ctx.stroke(); }
+        ctx.fillStyle = "#fff"; ctx.font = "bold 12px 'Silkscreen', monospace";
+        const z = (g.time * 1.5) % 1;
+        ctx.globalAlpha = 1 - z; ctx.fillText("z", cx + 12 + z * 6, cy - 12 - z * 10); ctx.globalAlpha = 1;
+      } else {
+        eyes(cx, cy - 3, e.dir, 6);
+        ctx.strokeStyle = "#1c3d12"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy + 4, 5, 0.2, Math.PI - 0.2); ctx.stroke();
+      }
+      break;
+    }
+    case "rocky": {
+      box(cx - 15, cy - 13, 30, 28, 9, "#7a6a5a"); box(cx - 13, cy - 13, 26, 24, 8, "#a08b74");
+      ctx.fillStyle = "#5c4d40"; ctx.fillRect(cx - 9, cy - 9, 18, 3);
+      eyes(cx, cy - 2, e.dir, 5);
+      ctx.fillStyle = "#5c4d40"; ctx.fillRect(cx - 18, cy + 2, 5, 8); ctx.fillRect(cx + 13, cy + 2, 5, 8);
+      break;
+    }
+    case "alma": {
+      const moving = e.t < 1;
+      ctx.save(); ctx.translate(cx, cy);
+      if (moving) ctx.rotate(g.time * 14);
+      circle(0, 0, 15, "#d94f8c"); circle(0, 0, 13, "#ff7eb6");
+      ctx.strokeStyle = "#d94f8c"; ctx.lineWidth = 3;
+      for (const a of [-0.6, 0, 0.6]) { ctx.beginPath(); ctx.arc(0, 0, 13, a - 0.9 + Math.PI / 2, a + 0.9 + Math.PI / 2, false); ctx.stroke(); }
+      ctx.restore();
+      if (!moving) eyes(cx, cy - 4, e.dir, 5);
+      break;
+    }
+  }
+}
+
+function drawCat(cx, cy, dir, step, alive) {
+  const side = dir === "left" ? -1 : dir === "right" ? 1 : 0;
+  const fur = "#1c1b24", furHi = "#34323f";
+  // tail curls up behind the body and sways
+  const sway = alive ? Math.sin(g.time * 4) * 4 : 0, tx = side ? -side : 1;
+  ctx.strokeStyle = fur; ctx.lineWidth = 5; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(cx + tx * 9, cy + 13);
+  ctx.quadraticCurveTo(cx + tx * 22, cy + 10, cx + tx * 18 + sway, cy - 4); ctx.stroke();
+  ell(cx, cy + 9, 13, 10, fur);
+  ell(cx - 7, cy + 17 + step, 5, 3.5, furHi); ell(cx + 7, cy + 17 - step, 5, 3.5, furHi);
+  const hx = cx + side * 2, hy = cy - 5;
+  ctx.fillStyle = fur;
+  for (const s of [-1, 1]) {
+    ctx.beginPath(); ctx.moveTo(hx + s * 12, hy - 3); ctx.lineTo(hx + s * 10, hy - 17); ctx.lineTo(hx + s * 2, hy - 10); ctx.closePath(); ctx.fill();
+  }
+  circle(hx, hy, 12.5, fur);
+  if (dir !== "up") {
+    ctx.fillStyle = "#e58fa6";
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(hx + s * 10, hy - 6); ctx.lineTo(hx + s * 9.5, hy - 13); ctx.lineTo(hx + s * 5, hy - 9); ctx.closePath(); ctx.fill(); }
+  }
+  circle(hx - 5, hy - 7, 3, "rgba(255,255,255,.12)");
+  if (dir === "up") return;
+  const ex = side * 3, ey = dir === "down" ? 1 : 0;
+  if (alive) {
+    for (const s of [-1, 1]) {
+      ell(hx + s * 5 + ex, hy - 1 + ey, 3.6, 4.2, "#c6f24e");
+      ell(hx + s * 5 + ex * 1.4, hy - 1 + ey, 1.2, 3.4, "#0b0b0f");
+      circle(hx + s * 5 + ex - 1, hy - 2.5 + ey, 0.9, "#ffffff");
+    }
+  } else {
+    ctx.strokeStyle = "#c6f24e"; ctx.lineWidth = 2;
+    for (const s of [-1, 1]) { const ox = hx + s * 5; ctx.beginPath(); ctx.moveTo(ox - 3, hy - 4); ctx.lineTo(ox + 3, hy + 2); ctx.moveTo(ox + 3, hy - 4); ctx.lineTo(ox - 3, hy + 2); ctx.stroke(); }
+  }
+  ctx.fillStyle = "#e58fa6";
+  ctx.beginPath(); ctx.moveTo(hx + ex * 1.5 - 2, hy + 4 + ey); ctx.lineTo(hx + ex * 1.5 + 2, hy + 4 + ey); ctx.lineTo(hx + ex * 1.5, hy + 6 + ey); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 1;
+  for (const s of [-1, 1]) for (const k of [-1.5, 1.5]) {
+    if (side === -s) continue; // hide the far-side whiskers in profile
+    ctx.beginPath(); ctx.moveTo(hx + s * 4 + ex, hy + 5 + ey); ctx.lineTo(hx + s * 15 + ex, hy + 4 + k * 2 + ey); ctx.stroke();
+  }
+}
+
+function drawLolo() {
+  const L = g.lolo, p = rpos(L), x = p.x * T, y = p.y * T, cx = x + 24, cy = y + 24;
+  if (L.dead) {
+    const k = Math.min(1, L.deadT / 0.8);
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(k * Math.PI * 3); ctx.scale(1 - k * 0.7, 1 - k * 0.7);
+    drawCat(0, 0, "down", 0, false);
+    ctx.restore();
+    return;
+  }
+  const step = L.t < 1 ? Math.sin(L.t * Math.PI * 2) * 3 : 0;
+  ell(cx, y + 43, 15, 4, "rgba(0,0,0,.22)");
+  drawCat(cx, cy, L.dir, step, true);
+}
+
+function drawProjectiles() {
+  if (g.shot) {
+    const s = g.shot, x = s.x * T + 24, y = s.y * T + 24;
+    circle(x, y, 10, "rgba(143,211,255,.35)"); circle(x, y, 6, "#8fd3ff"); circle(x - 2, y - 2, 2.5, "#fff");
+  }
+  for (const f of g.fireballs) {
+    const x = f.x * T + 24, y = f.y * T + 24, w = Math.sin(g.time * 30) * 1.5;
+    circle(x, y, 11 + w, "rgba(255,120,40,.4)"); circle(x, y, 7, "#ff7a1f"); circle(x, y, 3.5, "#ffe066");
+  }
+}
+
+function drawParticles() {
+  for (const p of g.particles) {
+    if (p.egg) {
+      ctx.save(); ctx.translate(p.x * T + 24, p.y * T + 24); ctx.rotate(g.time * 20);
+      ell(0, 0, 10, 12, "#fbf7ee"); ctx.restore();
+      continue;
+    }
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2));
+    ctx.fillStyle = p.color; ctx.fillRect(p.x * T + 22, p.y * T + 22, 4, 4);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  if (!g) return;
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) drawTile(r, c);
+  for (const [k, kind] of g.hearts) drawHeart(Math.floor(k / N), k % N, kind);
+  drawChest();
+  for (const f of g.framers) drawFramer(f);
+  for (const e of g.enemies) drawEnemy(e);
+  drawLolo();
+  drawProjectiles();
+  drawParticles();
+  if (g.beam && g.lolo.dead) {
+    const L = rpos(g.lolo), a = Math.min(1, (1.3 - g.lolo.deadT));
+    ctx.strokeStyle = `rgba(255,224,102,${a})`; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(g.beam.x1 * T + 24, g.beam.y1 * T + 22); ctx.lineTo(L.x * T + 24, L.y * T + 24); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,59,31,${a})`; ctx.lineWidth = 2; ctx.stroke();
+  }
+  if (g.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${g.flash * 0.8})`; ctx.fillRect(0, 0, cv.width, cv.height); }
+  if (g.lolo.dead) {
+    ctx.fillStyle = "rgba(10,6,25,.55)"; ctx.fillRect(0, 270, cv.width, 80);
+    ctx.fillStyle = "#ffd166"; ctx.font = "28px 'Silkscreen', monospace"; ctx.textAlign = "center";
+    ctx.fillText("OUCH! TRY AGAIN", cv.width / 2, 320); ctx.textAlign = "start";
+  }
+}
+
+// ---------- HUD & overlays ----------
+let hudCache = "";
+function updateHud(force) {
+  if (!g) return;
+  const L = g.lolo;
+  const pw = [L.hammer ? `Hammer ×${L.hammer}` : "", L.bridges ? `Bridge ×${L.bridges}` : ""].filter(Boolean).join(" · ") || "none";
+  const s = `${g.heartsTotal - g.heartsLeft}/${g.heartsTotal}|${g.lolo.shots}|${deaths}|${pw}`;
+  if (s === hudCache && !force) return;
+  hudCache = s;
+  $("hudHearts").textContent = `${g.heartsTotal - g.heartsLeft}/${g.heartsTotal}`;
+  $("hudShots").textContent = g.lolo.shots;
+  $("hudDeaths").textContent = deaths;
+  $("hudPower").textContent = pw;
+}
+function showOverlay(id) {
+  for (const o of ["ovMenu", "ovIntro", "ovClear"]) $(o).hidden = o !== id;
+  if (g) g.paused = !!id;
+  const focus = { ovIntro: "btnStart", ovClear: "btnNext" }[id];
+  if (focus) setTimeout(() => $(focus).focus(), 30);
+}
+function buildMenu() {
+  const grid = $("levelGrid"); grid.innerHTML = "";
+  LEVELS.forEach((lv, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "lv" + (done.has(i) ? " done" : ""); b.id = "lv" + i;
+    b.innerHTML = `${i + 1}<span>${lv.name}</span>`;
+    b.addEventListener("click", () => loadLevel(i));
+    grid.appendChild(b);
+  });
+}
+function openMenu() {
+  buildMenu(); showOverlay("ovMenu");
+  const first = LEVELS.findIndex((_, i) => !done.has(i));
+  setTimeout(() => $("lv" + (first < 0 ? 0 : first)).focus(), 30);
+}
+
+$("btnStart").addEventListener("click", () => { showOverlay(null); });
+$("btnNext").addEventListener("click", () => {
+  if (g.idx < LEVELS.length - 1) loadLevel(g.idx + 1); else openMenu();
+});
+$("btnRetry").addEventListener("click", () => { if (g) { showOverlay(null); loadLevel(g.idx, true); } $("btnRetry").blur(); });
+$("btnMenu").addEventListener("click", () => { openMenu(); $("btnMenu").blur(); });
+
+// ---------- Music & sound ----------
+// Five chiptune loops, one per room in rotation. Each is 8 bars of eighth notes:
+// a lead melody, one bass root per bar (played in bouncing octaves) and an optional tick.
+const TRACKS = [
+  { name: "Keep Theme", tempo: 150, lead: "square", leadVol: 0.35, tick: true,
+    melody: [72,76,79,76,72,76,79,84, 81,79,76,72,74,76,72,0, 77,81,84,81,77,76,74,72, 74,76,79,74,71,74,79,0,
+             76,0,76,79,84,83,81,79, 81,0,81,84,79,76,72,76, 77,76,74,72,74,77,81,77, 79,0,74,0,71,74,72,0],
+    roots: [48,45,41,43,48,45,41,43] },
+  { name: "Moonlit Halls", tempo: 118, lead: "triangle", leadVol: 0.55, tick: false,
+    melody: [69,0,72,76,74,72,69,0, 65,69,72,0,74,72,69,0, 67,72,76,0,79,76,72,76, 74,0,71,74,79,0,74,0,
+             81,0,79,76,77,76,72,0, 77,0,76,72,69,72,74,0, 76,79,76,72,74,72,71,0, 68,71,74,76,74,71,68,0],
+    roots: [45,41,48,43,45,41,48,40] },
+  { name: "Desert Dash", tempo: 172, lead: "square", leadVol: 0.28, tick: true,
+    melody: [74,77,81,77,74,77,81,84, 79,76,72,76,79,0,84,0, 77,74,70,74,77,81,82,81, 79,0,76,0,72,74,76,79,
+             86,0,84,81,84,0,81,77, 79,0,76,79,84,0,79,76, 77,79,81,82,81,79,77,74, 73,76,79,81,79,76,73,0],
+    roots: [50,48,46,48,50,48,46,45] },
+  { name: "Underwater Waltz", tempo: 132, lead: "sine", leadVol: 0.6, tick: false,
+    melody: [79,0,83,0,86,0,83,0, 76,0,79,0,83,0,79,0, 76,79,84,79,76,72,76,0, 78,0,81,0,86,84,81,78,
+             79,83,86,91,86,83,79,0, 76,79,83,88,83,79,76,0, 72,76,79,84,81,79,76,72, 74,78,81,78,74,0,0,0],
+    roots: [43,40,48,50,43,40,48,50] },
+  { name: "Castle March", tempo: 140, lead: "square", leadVol: 0.32, tick: true,
+    melody: [76,76,79,76,71,0,76,0, 72,72,76,72,67,0,72,0, 74,74,78,81,79,78,74,0, 75,78,81,78,75,0,71,0,
+             88,0,86,84,83,0,79,0, 84,0,83,81,79,0,76,0, 81,79,77,76,74,72,71,69, 71,0,75,0,78,0,83,0],
+    roots: [40,48,50,47,40,48,45,47] },
+];
+let track = TRACKS[0];
+function setTrack(n) {
+  const t = TRACKS[n % TRACKS.length];
+  if (t !== track) { track = t; stepIdx = 0; }
+}
+let soundOn = true;
+try { soundOn = localStorage.getItem("jewelkeep.sound") !== "off"; } catch (e) {}
+let actx = null, master = null, musicBus = null, nextTime = 0, stepIdx = 0, schedTimer = null;
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+
+function ensureAudio() {
+  if (!soundOn) return;
+  try {
+    if (!actx) {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      master = actx.createGain(); master.gain.value = 0.5; master.connect(actx.destination);
+      musicBus = actx.createGain(); musicBus.gain.value = 0.22; musicBus.connect(master);
+    }
+    iosUnlock();
+    if (actx.state === "suspended") actx.resume();
+    if (!schedTimer) { nextTime = actx.currentTime + 0.1; schedTimer = setInterval(schedule, 50); }
+  } catch (e) {}
+}
+// iPhone/iPad: play Web Audio as media so the Silent switch doesn't mute it
+let keepAlive = null;
+function iosUnlock() {
+  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+  try {
+    if (!keepAlive) {
+      // older iOS without audioSession: a looping silent <audio> track switches the page to the playback category
+      const rate = 8000, n = rate / 2, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+      const w = (o, str) => [...str].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+      w(0, "RIFF"); v.setUint32(4, 36 + n, true); w(8, "WAVEfmt "); v.setUint32(16, 16, true);
+      v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate, true);
+      v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, "data"); v.setUint32(40, n, true);
+      for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+      keepAlive = new Audio(URL.createObjectURL(new Blob([buf], { type: "audio/wav" })));
+      keepAlive.loop = true;
+      keepAlive.setAttribute("playsinline", "");
+    }
+    keepAlive.play().catch(() => {});
+    // a one-sample buffer started inside the tap unlocks the context on Safari
+    const b = actx.createBufferSource(); b.buffer = actx.createBuffer(1, 1, 22050);
+    b.connect(actx.destination); b.start(0);
+  } catch (e) {}
+}
+function tone(freq, start, dur, type, vol, bus, slideTo) {
+  const o = actx.createOscillator(), gn = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, start);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, start + dur);
+  gn.gain.setValueAtTime(0.0001, start);
+  gn.gain.exponentialRampToValueAtTime(vol, start + 0.01);
+  gn.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.connect(gn); gn.connect(bus || master);
+  o.start(start); o.stop(start + dur + 0.02);
+}
+function schedule() {
+  if (!actx) return;
+  while (nextTime < actx.currentTime + 0.25) {
+    const step = 60 / track.tempo / 2;
+    const i = stepIdx % track.melody.length, bar = Math.floor(i / 8);
+    const m = track.melody[i];
+    if (m) tone(mtof(m), nextTime, step * 0.9, track.lead, track.leadVol, musicBus);
+    const root = track.roots[bar] + (i % 2 ? 12 : 0);
+    tone(mtof(root), nextTime, step * 0.8, "triangle", 0.6, musicBus);
+    if (track.tick && i % 4 === 2) tone(90, nextTime, 0.05, "square", 0.15, musicBus, 40);
+    nextTime += step; stepIdx++;
+  }
+}
+function stopAudio() {
+  clearInterval(schedTimer); schedTimer = null;
+  if (keepAlive) keepAlive.pause();
+  if (actx) actx.suspend();
+}
+function sfx(name) {
+  if (!soundOn || !actx || actx.state !== "running") return;
+  const t = actx.currentTime;
+  switch (name) {
+    case "heart": tone(880, t, 0.08, "square", 0.25); tone(1320, t + 0.07, 0.12, "square", 0.25); break;
+    case "magic": [880, 1109, 1319, 1760].forEach((f, i) => tone(f, t + i * 0.05, 0.1, "square", 0.2)); break;
+    case "shot": tone(1200, t, 0.15, "square", 0.2, null, 300); break;
+    case "egg": tone(500, t, 0.1, "triangle", 0.4, null, 900); break;
+    case "push": tone(160, t, 0.06, "triangle", 0.3); break;
+    case "hammer": tone(120, t, 0.12, "square", 0.35, null, 60); tone(90, t + 0.08, 0.15, "triangle", 0.4); break;
+    case "chest": [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.07, 0.12, "square", 0.22)); break;
+    case "jewel": [784, 988, 1175, 1568, 1976].forEach((f, i) => tone(f, t + i * 0.06, 0.15, "square", 0.22)); break;
+    case "die": tone(600, t, 0.7, "square", 0.3, null, 80); break;
+    case "clear": [523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.1, 0.16, "square", 0.25)); break;
+  }
+}
+function setSound(on) {
+  soundOn = on;
+  try { localStorage.setItem("jewelkeep.sound", on ? "on" : "off"); } catch (e) {}
+  $("btnSound").textContent = on ? "Music on" : "Music off";
+  $("btnSound").setAttribute("aria-pressed", String(on));
+  if (on) ensureAudio(); else stopAudio();
+}
+$("btnSound").addEventListener("click", () => { setSound(!soundOn); $("btnSound").blur(); });
+$("btnSound").textContent = soundOn ? "Music on" : "Music off";
+$("btnSound").setAttribute("aria-pressed", String(soundOn));
+window.addEventListener("pointerdown", ensureAudio);
+window.addEventListener("keydown", ensureAudio);
+document.addEventListener("visibilitychange", () => {
+  if (!actx) return;
+  if (document.hidden) actx.suspend(); else if (soundOn) actx.resume();
+});
+
+// ---------- Input ----------
+const held = [];
+function press(d) { const i = held.indexOf(d); if (i >= 0) held.splice(i, 1); held.unshift(d); }
+function release(d) { const i = held.indexOf(d); if (i >= 0) held.splice(i, 1); }
+function heldDir() { return held[0]; }
+const KEYMAP = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", w: "up", s: "down", a: "left", d: "right", W: "up", S: "down", A: "left", D: "right" };
+
+window.addEventListener("keydown", ev => {
+  const d = KEYMAP[ev.key];
+  const overlayOpen = !$("ovMenu").hidden || !$("ovIntro").hidden || !$("ovClear").hidden;
+  if (!$("ovIntro").hidden && (d || ev.key === " ")) { ev.preventDefault(); showOverlay(null); if (d) press(d); return; }
+  if (overlayOpen) { if (ev.key === "Escape" && g && $("ovMenu").hidden) openMenu(); return; }
+  if (d) { ev.preventDefault(); press(d); }
+  else if (ev.key === " " || ev.key === "z" || ev.key === "Z" || ev.key === "j") { ev.preventDefault(); if (!ev.repeat) fire(); }
+  else if (ev.key === "x" || ev.key === "X" || ev.key === "k") { ev.preventDefault(); if (!ev.repeat) usePower(); }
+  else if (ev.key === "r" || ev.key === "R") { if (g && !g.cleared) loadLevel(g.idx, true); }
+  else if (ev.key === "m" || ev.key === "M") setSound(!soundOn);
+  else if (ev.key === "Escape") openMenu();
+});
+window.addEventListener("keyup", ev => { const d = KEYMAP[ev.key]; if (d) release(d); });
+window.addEventListener("blur", () => { held.length = 0; });
+
+document.querySelectorAll(".dpad button").forEach(b => {
+  const d = b.dataset.dir;
+  b.addEventListener("pointerdown", ev => { ev.preventDefault(); b.setPointerCapture(ev.pointerId); b.classList.add("on"); if (!$("ovIntro").hidden) showOverlay(null); press(d); });
+  const up = () => { b.classList.remove("on"); release(d); };
+  b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up); b.addEventListener("lostpointercapture", up);
+});
+$("padFire").addEventListener("pointerdown", ev => { ev.preventDefault(); fire(); });
+$("padTool").addEventListener("pointerdown", ev => { ev.preventDefault(); usePower(); });
+
+// ---------- Loop ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!manual) update(dt);
+  if (g) updateHud();
+  draw();
+  requestAnimationFrame(frame);
+}
+
+let manual = false;
+window.__jk = { get g() { return g; }, loadLevel, tryMove, fire, usePower, held, sees, tick: dt => update(dt), setManual: v => { manual = v; } };
+const firstOpen = LEVELS.findIndex((_, i) => !done.has(i));
+loadLevel(firstOpen < 0 ? 0 : firstOpen);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

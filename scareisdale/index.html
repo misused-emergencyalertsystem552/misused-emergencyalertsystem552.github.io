@@ -87,21 +87,20 @@ kbd{font-family:var(--pixel); font-size:8px; color:var(--night); background:var(
 .rotate-hint{display:none; margin:0; font-size:9px; line-height:1.8; color:var(--bulb); text-align:center}
 @media (pointer:coarse) and (orientation:portrait){ .rotate-hint{display:block} }
 .touch{-webkit-touch-callout:none}
-/* Phone held sideways: the game fills the screen height, touch buttons float over the bottom corners */
-@media (orientation:landscape) and (max-height:540px){
-  html,body{height:100%; overflow:hidden; touch-action:none}
-  .wrap{max-width:none; height:100%; padding:0; gap:0; justify-content:center}
-  h1,.tag,.bar,.rotate-hint{display:none}
-  .stage{max-width:none; width:min(100vw, calc(100dvh * 1.6)); padding:0; border-radius:0; background:none; box-shadow:none; animation:none}
-  canvas{border-radius:0}
-  .overlay{inset:0; border-radius:0}
-  .touch{position:fixed; left:0; right:0; bottom:0; width:auto; max-width:none; box-sizing:border-box; z-index:5; pointer-events:none;
-    padding:0 max(14px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px))}
-  .touch .grp{pointer-events:auto}
-  .touch button{background:rgba(43,15,69,.45); border-color:rgba(255,231,194,.35); width:56px; height:56px}
-  .touch button[data-k=left],.touch button[data-k=right],.touch button[data-k=down]{font-size:18px}
-  .touch button.act{background:rgba(232,48,74,.55)}
-}
+/* Phone held sideways (class set by script from the real screen size): game fills the height, touch buttons float over the corners */
+html.phone-land, html.phone-land body{height:100%; overflow:hidden; touch-action:none}
+.phone-land .wrap{max-width:none; height:100%; padding:0; gap:0; justify-content:center}
+.phone-land h1, .phone-land .tag, .phone-land .bar, .phone-land .rotate-hint{display:none}
+.phone-land .stage{max-width:none; padding:0; border-radius:0; background:none; box-shadow:none; animation:none}
+.phone-land canvas{border-radius:0}
+.phone-land .overlay{inset:0; border-radius:0}
+.phone-land .touch{display:flex; position:fixed; left:0; right:0; bottom:0; width:auto; max-width:none; box-sizing:border-box; z-index:5; pointer-events:none;
+  padding:0 max(14px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px))}
+.phone-land .touch .grp{pointer-events:auto}
+.phone-land .touch button{background:rgba(43,15,69,.45); border-color:rgba(255,231,194,.35); width:56px; height:56px}
+.phone-land .touch button.act{background:rgba(232,48,74,.55)}
+.touch button[data-k=left],.touch button[data-k=right],.touch button[data-k=down]{font-size:18px}
+.ver{font-size:8px; color:var(--dim); opacity:.8}
 @media (prefers-reduced-motion:reduce){ .stage{animation:none} .ticket{transition:none} }
 </style>
 </head>
@@ -118,6 +117,7 @@ kbd{font-family:var(--pixel); font-size:8px; color:var(--night); background:var(
       <h2>Step right up</h2>
       <p>Run the midway, bonk the prize blocks for tickets, stomp zombies, ghouls, spiders and clowns (ghosts only creep up when your back is turned), grab cotton candy to grow, and slide down the pole at the Funhouse.</p>
       <button class="ticket" id="startBtn">ADMIT ONE &#9656; START</button>
+      <span class="ver" id="verOverlay"></span>
       <p class="keys-only" style="color:var(--dim)">Hold jump longer to jump higher. Run to jump farther.<br>Rumor says some drums go deeper, and some prizes hide in thin air.</p>
     </div>
   </div>
@@ -141,13 +141,29 @@ kbd{font-family:var(--pixel); font-size:8px; color:var(--night); background:var(
     <span class="keys-only"><kbd>&darr;</kbd> enter drum</span>
     <span class="keys-only"><kbd>P</kbd> pause</span>
     <button class="tog" id="muteBtn" aria-pressed="false">MUSIC: ON</button>
+    <span class="ver" id="verBar"></span>
   </div>
 </div>
 
 <script>
 (() => {
 'use strict';
+const VERSION = 'v1.2';
+document.getElementById('verBar').textContent = VERSION;
+document.getElementById('verOverlay').textContent = VERSION;
 const TS = 16, VW = 384, VH = 240, ROWS = 15;
+
+// Fit the game to a phone held sideways, using the real window size (more reliable than CSS units on iOS)
+const stageEl = document.getElementById('stage');
+function fitPhone() {
+  const w = window.innerWidth, h = window.innerHeight, on = w > h && h <= 600;
+  document.documentElement.classList.toggle('phone-land', on);
+  stageEl.style.width = on ? Math.floor(Math.min(w, h * 1.6)) + 'px' : '';
+}
+window.addEventListener('resize', fitPhone);
+window.addEventListener('orientationchange', () => { fitPhone(); setTimeout(fitPhone, 350); });
+window.visualViewport?.addEventListener('resize', fitPhone);
+fitPhone();
 const cv = document.getElementById('game');
 const ctx = cv.getContext('2d');
 let S = 2;
@@ -460,7 +476,23 @@ T.dTL = drumTile(true, true); T.dTR = drumTile(false, true); T.dBL = drumTile(tr
 const Snd = {
   ctx: null, master: null, music: null, sfx: null, noiseBuf: null, muted: false,
   playing: false, nextT: 0, bar: 0, timer: null, drone: null, tempoMul: 1,
+  unlockIOS() {
+    // iOS mutes Web Audio when the ringer switch is on silent. Asking for a playback session
+    // (or playing a looping silent <audio> element) lets the music play like a normal game.
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    if (this.silentEl) { this.silentEl.play().catch(() => {}); return; }
+    const rate = 8000, n = rate / 4, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+    const str = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+    const el = this.silentEl = document.createElement('audio');
+    el.src = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })); el.loop = true; el.setAttribute('playsinline', ''); el.volume = 0.01;
+    el.play().catch(() => {});
+  },
+  wake() { this.unlockIOS(); if (this.ctx && this.ctx.state !== 'running' && !paused) this.ctx.resume(); },
   init() {
+    this.unlockIOS();
     if (this.ctx) { this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const c = this.ctx = new AC();
@@ -636,6 +668,7 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) { e.preventDefault(); press(k, false); } });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+['pointerdown', 'touchend', 'keydown'].forEach(t => window.addEventListener(t, () => { if (state !== 'title') Snd.wake(); }, { passive: true }));
 function setPaused(v) { paused = v; if (Snd.ctx) v ? Snd.ctx.suspend() : Snd.ctx.resume(); }
 document.addEventListener('visibilitychange', () => { if (document.hidden && state !== 'title') setPaused(true); });
 document.querySelectorAll('#touch button').forEach(b => {

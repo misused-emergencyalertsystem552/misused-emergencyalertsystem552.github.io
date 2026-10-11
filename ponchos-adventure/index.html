@@ -63,6 +63,7 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
 .lv { font-family: var(--font-display); background: var(--bg); color: var(--fg); border: 2px solid var(--edge); padding: 8px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 1.1rem; }
 .lv span { font-family: var(--font-body); font-size: .7rem; color: var(--muted); text-align: center; line-height: 1.1; }
 .lv.done { border-color: var(--emerald); }
+.levels .part { grid-column: 1 / -1; font-family: var(--font-display); color: var(--gold); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; padding-top: 6px; }
 .lv.done::after { content: "cleared"; font-family: var(--font-body); font-size: .65rem; color: var(--emerald); }
 .lv:hover, .lv:focus-visible { border-color: var(--gold); outline: none; }
 .primary { background: var(--heart); border-color: #ffa3b5; color: #fff; font-size: .9rem; padding: 10px 14px; }
@@ -143,7 +144,7 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
         <div class="levels" id="levelGrid"></div>
         <h3>How to play</h3>
         <p>Poncho the cat must cross the keep's rooms. In each room, collect every Heart Framer to open the chest, take the jewel, and leave through the door that opens at the top.</p>
-        <p class="small">Push green Emerald Framers to block gazes. Gold-framed purple hearts give 2 magic shots: hit a monster to turn it into an egg, hit the egg to send it away for a while. Eggs can be pushed, and they float on water. Trees stop your feet but not shots or stares. Later rooms add grey hearts that give a Hammer for breaking one rock, teal hearts that give a Bridge for crossing one water or lava tile (press X), plus sand that slows you, grass that monsters cannot enter, and river currents that carry eggs.</p>
+        <p class="small">Push green Emerald Framers to block gazes. Gold-framed purple hearts give 2 magic shots: hit a monster to turn it into an egg, hit the egg to send it away for a while. Eggs can be pushed, and they float on water. Trees stop your feet but not shots or stares. Later rooms add grey hearts that give a Hammer for breaking one rock, teal hearts that give a Bridge for crossing one water or lava tile (press X), plus sand that slows you, grass that monsters cannot enter, and river currents that carry eggs. In the castle, orange hearts give an Arrow power that turns a one-way arrow around, monsters you blast away come back on glowing runes, and bosses take several magic shots.</p>
       </div>
     </div>
     <div class="overlay" id="ovIntro" hidden>
@@ -191,7 +192,7 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
 // h heart, m magic heart (+2 shots), C chest, E emerald framer, L Poncho
 // s Snakey, M Medusa, O Don Medusa (patrols sideways), G Gol, K Skull, p Leeper, a Alma
 const LEVELS = [
-  { name: "First Steps",
+  { name: "First Steps", part: "The Keep",
     hint: "Collect every Heart Framer to open the chest. Take the jewel, then walk out the door. Snakeys just sit there.",
     map: [
       "WWWWWWDWWWWWW",
@@ -639,7 +640,7 @@ const LEVELS = [
       "W..m........W",
       "W.....L.....W",
       "WWWWWWWWWWWWW"] },
-  { name: "Under the Gaze",
+  { name: "Under the Gaze", part: "The Tower",
     hint: "Two Medusas stare straight down from the top wall. Slide a framer under each one before you go near their columns.",
     map: [
       "WWWWWWDWWWWWW",
@@ -959,6 +960,198 @@ const LEVELS = [
       "W...........W",
       "W.h...L...h.W",
       "WWWWWWWWWWWWW"] },
+  { name: "Pinned Don", theme: "castle", part: "The Castle",
+    hint: "Don Medusa paces the middle hall. Push the framer down beside it just as it reaches the left wall, and it's stuck there for good.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W.L.........W",
+      "W.........h.W",
+      "W...........W",
+      "WRERRR.RRRRRW",
+      "WO..........W",
+      "WRRRRR.RRRRRW",
+      "W...........W",
+      "W.h.......h.W",
+      "W...........W",
+      "W...........W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Lava Gols", theme: "castle",
+    hint: "Two Gols guard the lava. Bridge the lava early, then turn both Gols into eggs before taking the last heart.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "WXXXXXCXXXXXW",
+      "WXXXXXXXXXXXW",
+      "W...G...G...W",
+      "W...........W",
+      "W.m...b...m.W",
+      "W...........W",
+      "W.TT.....TT.W",
+      "W.h.......h.W",
+      "W...........W",
+      "W.....h.....W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Spawn Runes", theme: "castle",
+    hint: "In the castle, a Snakey you blast away comes back on the glowing rune. Send it away so it returns as your shield.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "W.h.......h.W",
+      "WRRRRR.RRRRRW",
+      "WM.*........W",
+      "WRRRRR.RRRRRW",
+      "W...........W",
+      "W.h.......h.W",
+      "WRRRRRsRRRRRW",
+      "W.m.......h.W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Arrow Turn", theme: "castle",
+    hint: "The orange heart gives an Arrow power. Press X facing a one-way arrow to turn it around.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "WRRRRRvRRRRRW",
+      "W.h.......h.W",
+      "W...........W",
+      "WRRRRR^RRRRRW",
+      "W...........W",
+      "W.h..f....h.W",
+      "W...........W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Skulls and Sleeper", theme: "castle",
+    hint: "Let the Leeper doze off in front of one Skull's alcove, and seal the other alcove with the framer.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W...........W",
+      "W.RRR...RRR.W",
+      "W.RKR...RKR.W",
+      "W.L.........W",
+      "WRR......E..W",
+      "W...........W",
+      "W..p........W",
+      "W.h..h.h..h.W",
+      "W...........W",
+      "W...........W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Gol Brute", theme: "castle", bossHP: 4,
+    hint: "Boss! The Gol Brute spits fire down any open line. Grab the magic hearts, step into the gap, shoot, and sidestep.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W.....B.....W",
+      "W...........W",
+      "W..T.....T..W",
+      "W...........W",
+      "W...........W",
+      "W...........W",
+      "WRRRRR.RRRRRW",
+      "W.m.........W",
+      "W.m.L.....m.W",
+      "W...........W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Don Duo", theme: "castle",
+    hint: "Two Don Medusas, two lanes. Pin each one against the far wall, the lower one first.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "WRRRRRRR.RRRW",
+      "WO..........W",
+      "WRRRRRRR.RERW",
+      "W.h.......h.W",
+      "WRRRRR.RRRRRW",
+      "WO..........W",
+      "WRERRR.RRRRRW",
+      "W.h.......h.W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Snakes and Ladders", theme: "castle",
+    hint: "The teal heart is a ladder across the first river. A Snakey egg carries you over the second.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "W~~~~~~~~~~~W",
+      "W...........W",
+      "W.s.......s.W",
+      "W~~~~~~~~~~~W",
+      "W...........W",
+      "W.h.b..m..h.W",
+      "W...........W",
+      "W.....s.....W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Second Chances", theme: "castle",
+    hint: "The Snakey shields one lane now. Blast it away and it returns on the rune in the other lane.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "WRRRRR.RRRRRW",
+      "WM.*........W",
+      "WRRRRR.RRRRRW",
+      "W.h..m....h.W",
+      "WR.R.RRRRRRRW",
+      "W...s......MW",
+      "WR.RRRRRRRRRW",
+      "W.h.......h.W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Arrow Maze", theme: "castle",
+    hint: "Every gate points the wrong way. You get one Arrow power per floor, so choose which gate to turn.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h...C...h.W",
+      "W...........W",
+      "WRRRvRRRvRRRW",
+      "W.....f.....W",
+      "W.h.......h.W",
+      "WRRRvRRRvRRRW",
+      "W...........W",
+      "W.h.......h.W",
+      "W.....f.....W",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Leeper Line-up", theme: "castle",
+    hint: "Each Leeper is stuck in its lane by grass. Stand in the right grass pocket and it falls asleep exactly where you need it.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.h.h.C.....W",
+      "WRRgRRgRRRRRW",
+      "Wp.........MW",
+      "WRRRRRgRgRRRW",
+      "W.h.......h.W",
+      "W...........W",
+      "W.h.......h.W",
+      "WRRRRRgRRRRRW",
+      "WM.........pW",
+      "WRRRgRgRRRRRW",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "The Warden", theme: "castle", bossHP: 6, bossFire: 1.2,
+    hint: "Final boss! The Warden fires faster and takes six hits. Collect every magic heart before you face it.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W...........W",
+      "W.....B.....W",
+      "W.R.......R.W",
+      "W...........W",
+      "W....R.R....W",
+      "W...........W",
+      "WRRRRR.RRRRRW",
+      "W...........W",
+      "W.m.m.L.m.m.W",
+      "W...........W",
+      "WWWWWWWWWWWWW"] },
 ];
 
 const T = 48, N = 13, MOVE = 0.16;
@@ -978,9 +1171,10 @@ const ETYPE = {
   p: { kind: "leeper", shoot: true, speed: 0.5 },
   a: { kind: "alma", shoot: true, speed: 0.45 },
   r: { kind: "rocky", shoot: false, speed: 0.5 },
+  B: { kind: "boss", shoot: true, speed: 0.45, dir: "right" },
 };
 
-const VERSION = "v1.3";
+const VERSION = "v1.4";
 document.getElementById("version").textContent = VERSION;
 
 const cv = document.getElementById("cv");
@@ -997,7 +1191,7 @@ const key = (r, c) => r * N + c;
 
 function loadLevel(idx, retry) {
   const lv = LEVELS[idx];
-  const grid = [], hearts = new Map(), framers = [], enemies = [];
+  const grid = [], hearts = new Map(), framers = [], enemies = [], spawns = [];
   let chest = null, lolo = null;
   for (let r = 0; r < N; r++) {
     const row = [];
@@ -1005,23 +1199,25 @@ function loadLevel(idx, retry) {
       const ch = lv.map[r][c];
       let t = ".";
       if ("WDTR~H^v<>SgX8246".includes(ch)) t = ch;
-      else if ("hmkb".includes(ch)) hearts.set(key(r, c), ch);
+      else if (ch === "*") spawns.push([r, c]);
+      else if ("hmkbf".includes(ch)) hearts.set(key(r, c), ch);
       else if (ch === "C") chest = { r, c, state: "closed" };
       else if (ch === "E") framers.push(mover(r, c));
-      else if (ch === "L") lolo = Object.assign(mover(r, c), { dir: "up", shots: 0, hammer: 0, bridges: 0, dead: false, deadT: 0 });
+      else if (ch === "L") lolo = Object.assign(mover(r, c), { dir: "up", shots: 0, hammer: 0, bridges: 0, arrows: 0, dead: false, deadT: 0 });
       else if (ETYPE[ch]) {
         const ty = ETYPE[ch];
         enemies.push(Object.assign(mover(r, c), {
           kind: ty.kind, shoot: ty.shoot, speed: ty.speed || 0.5,
           sr: r, sc: c, sdir: ty.dir || "down", dir: ty.dir || "down",
           state: "normal", timer: 0, cd: 1, raft: false, fb: false, respawnT: 0,
+          hp: ty.kind === "boss" ? (lv.bossHP || 4) : 0, fcd: 1.5, flash: 0,
         }));
       }
       row.push(t);
     }
     grid.push(row);
   }
-  g = { idx, grid, hearts, heartsTotal: hearts.size, heartsLeft: hearts.size, chest, framers, enemies, lolo,
+  g = { idx, grid, hearts, spawns, bossHPMax: lv.bossHP || 4, bossFire: lv.bossFire || 1.6, theme: lv.theme || "garden", heartsTotal: hearts.size, heartsLeft: hearts.size, chest, framers, enemies, lolo,
         shot: null, fireballs: [], particles: [], doorOpen: false, jewel: false, cleared: false,
         time: 0, beam: null, paused: false, flash: 0 };
   $("levelName").textContent = `Room ${idx + 1} · ${lv.name}`;
@@ -1072,6 +1268,8 @@ function usePower() {
   const [dr, dc] = DIRS[L.dir], r = L.r + dr, c = L.c + dc, t = terr(r, c);
   if (L.hammer > 0 && t === "R" && r > 0 && c > 0 && r < N - 1 && c < N - 1) {
     g.grid[r][c] = "."; L.hammer--; burst(c, r, "#b4b9c4", 18); sfx("hammer");
+  } else if (L.arrows > 0 && ARROW[t] && !framerAt(r, c) && !enemyAt(r, c)) {
+    g.grid[r][c] = { "^": "v", "v": "^", "<": ">", ">": "<" }[t]; L.arrows--; burst(c, r, "#f6f1d0", 12); sfx("push");
   } else if (L.bridges > 0 && (isWater(t) || t === "X") && !enemyAt(r, c)) {
     g.grid[r][c] = "H"; L.bridges--; burst(c, r, "#c48a4a", 14); sfx("push");
   } else return;
@@ -1114,9 +1312,10 @@ function onArrive() {
     if (kind === "m") L.shots += 2;
     if (kind === "k") L.hammer++;
     if (kind === "b") L.bridges++;
+    if (kind === "f") L.arrows++;
     sfx(magic ? "magic" : "heart");
     burst(L.c, L.r, magic ? "#c9a7ff" : "#ff4d6d", 14);
-    if (g.heartsLeft === 0 && g.chest) { g.chest.state = "open"; sfx("chest"); burst(g.chest.c, g.chest.r, "#ffd166", 20); }
+    maybeOpenChest();
     updateHud();
   }
   if (chestAt(L.r, L.c) && g.chest.state === "open") {
@@ -1124,6 +1323,13 @@ function onArrive() {
     burst(L.c, L.r, "#7fe7ff", 24);
     for (const e of g.enemies) if (e.state !== "gone" && e.state !== "vanished") { burst(rpos(e).x, rpos(e).y, "#ffffff", 10); e.state = "vanished"; }
     g.fireballs = []; g.shot = null;
+  }
+}
+
+function bossAlive() { return g.enemies.some(e => e.kind === "boss" && e.state !== "vanished"); }
+function maybeOpenChest() {
+  if (g.heartsLeft === 0 && g.chest && g.chest.state === "closed" && !bossAlive()) {
+    g.chest.state = "open"; sfx("chest"); burst(g.chest.c, g.chest.r, "#ffd166", 20);
   }
 }
 
@@ -1205,9 +1411,14 @@ function updateEnemy(e, dt) {
   if (e.state === "gone") {
     e.respawnT -= dt;
     if (e.respawnT <= 0) {
-      if (!(L.r === e.sr && L.c === e.sc) && !framerAt(e.sr, e.sc) && !enemyAt(e.sr, e.sc, e)) {
-        Object.assign(e, mover(e.sr, e.sc), { state: "normal", cd: 1, dir: e.sdir, fb: false });
-        burst(e.sc, e.sr, "#ffffff", 10);
+      const free = ([r, c]) => !(L.r === r && L.c === c) && !framerAt(r, c) && !enemyAt(r, c, e) && !g.hearts.has(key(r, c));
+      // Rooms with spawn runes send monsters back at the free rune farthest from Poncho
+      const spots = g.spawns.length ? g.spawns.filter(free).sort((a, b) => (Math.abs(b[0] - L.r) + Math.abs(b[1] - L.c)) - (Math.abs(a[0] - L.r) + Math.abs(a[1] - L.c)))
+                                    : (free([e.sr, e.sc]) ? [[e.sr, e.sc]] : []);
+      if (spots.length) {
+        const [r, c] = spots[0];
+        Object.assign(e, mover(r, c), { state: "normal", cd: 1, dir: e.sdir, fb: false });
+        burst(c, r, "#ffffff", 10);
       } else e.respawnT = 0.5;
     }
     return;
@@ -1269,6 +1480,25 @@ function updateEnemy(e, dt) {
         g.fireballs.push({ x: e.c, y: e.r, dir: d, owner: e, lr: e.r, lc: e.c });
       }
       break;
+    case "boss": {
+      e.cd -= dt; e.fcd -= dt; if (e.flash > 0) e.flash -= dt;
+      if (e.cd <= 0 && e.t >= 1) {
+        e.cd = e.speed;
+        for (let i = 0; i < 2; i++) {
+          const nr = e.r + DIRS[e.dir][0], nc = e.c + DIRS[e.dir][1];
+          if (enemyCanEnter(e, nr, nc, e.dir, e.r, e.c) && !(L.r === nr && L.c === nc)) { startMove(e, nr, nc, e.speed * 0.9); break; }
+          e.dir = OPP[e.dir];
+        }
+      }
+      const bt = vtile(e);
+      if (e.fcd <= 0 && !e.fb && (bt.r === lt.r || bt.c === lt.c) && !(bt.r === lt.r && bt.c === lt.c) && sees(bt.r, bt.c, lt.r, lt.c, e)) {
+        e.fb = true; e.fcd = g.bossFire; e.cd = Math.max(e.cd, 0.7); // plants its feet to breathe fire
+        g.fireballs.push({ x: bt.c, y: bt.r, dir: dirTo(bt.r, bt.c, lt.r, lt.c), owner: e, lr: bt.r, lc: bt.c });
+      }
+      const a = rpos(e), b = rpos(L);
+      if (Math.hypot(a.x - b.x, a.y - b.y) < 0.75) killLolo();
+      break;
+    }
     case "rocky":
       e.cd -= dt;
       if (e.cd <= 0 && e.t >= 1) {
@@ -1306,6 +1536,11 @@ function updateEnemy(e, dt) {
 function hitEnemy(e, dir) {
   const p = rpos(e);
   if (!e.shoot) { burst(p.x, p.y, "#c9a7ff", 6); return; }
+  if (e.kind === "boss") {
+    e.hp--; e.flash = 0.35; sfx("egg"); burst(p.x, p.y, "#ffd166", 10);
+    if (e.hp <= 0) { e.state = "vanished"; g.fireballs = g.fireballs.filter(f => f.owner !== e); burst(p.x, p.y, "#ff7a1f", 40); g.flash = 0.4; sfx("jewel"); maybeOpenChest(); }
+    return;
+  }
   if (e.state === "egg") {
     e.state = "gone"; e.respawnT = RESPAWN;
     const [dr, dc] = DIRS[dir];
@@ -1400,6 +1635,12 @@ function ell(x, y, rx, ry, col) { ctx.fillStyle = col; ctx.beginPath(); ctx.elli
 function box(x, y, w, h, r, col) { ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); }
 
 function drawFloor(x, y, r, c) {
+  if (g.theme === "castle") {
+    ctx.fillStyle = (r + c) % 2 ? "#8f8aa6" : "#857f9c"; ctx.fillRect(x, y, T, T);
+    ctx.fillStyle = "#757090"; ctx.fillRect(x, y + T - 2, T, 2); ctx.fillRect(x + T - 2, y, 2, T);
+    ctx.fillStyle = "#9d98b4"; ctx.fillRect(x + 2, y + 2, T - 6, 2);
+    return;
+  }
   ctx.fillStyle = (r + c) % 2 ? "#8cc865" : "#82bf5c";
   ctx.fillRect(x, y, T, T);
   ctx.fillStyle = "#6fa84b";
@@ -1513,7 +1754,7 @@ function drawTile(r, c) {
 function drawHeart(r, c, kind) {
   const x = c * T, y = r * T, b = Math.sin(g.time * 4 + r + c) * 1.5, magic = kind !== "h";
   box(x + 7, y + 7, 34, 34, 5, "#b8862b");
-  box(x + 9, y + 9, 30, 30, 4, { h: "#ffe9b3", m: "#5b3fc4", k: "#4a5568", b: "#1f7a8c" }[kind]);
+  box(x + 9, y + 9, 30, 30, 4, { h: "#ffe9b3", m: "#5b3fc4", k: "#4a5568", b: "#1f7a8c", f: "#9a5b13" }[kind]);
   heartPath(x + 24, y + 24 + b * 0.3, 10 + b * 0.4);
   ctx.fillStyle = "#e8344f"; ctx.fill();
   ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillRect(x + 18, y + 18, 3, 3);
@@ -1523,6 +1764,7 @@ function drawHeart(r, c, kind) {
     ctx.fillRect(x + 32, y + 11, 2, 6); ctx.fillRect(x + 30, y + 13, 6, 2);
   }
   if (kind === "k") { ctx.fillStyle = "#d9dde6"; ctx.fillRect(x + 11, y + 30, 9, 5); ctx.fillStyle = "#a8743f"; ctx.fillRect(x + 14, y + 33, 3, 6); }
+  if (kind === "f") { ctx.fillStyle = "#f6f1d0"; ctx.beginPath(); ctx.moveTo(x + 11, y + 33); ctx.lineTo(x + 17, y + 28); ctx.lineTo(x + 17, y + 38); ctx.closePath(); ctx.fill(); ctx.fillRect(x + 17, y + 31, 5, 4); }
   if (kind === "b") { ctx.fillStyle = "#c48a4a"; for (let i = 0; i < 3; i++) ctx.fillRect(x + 11, y + 29 + i * 3, 10, 2); }
 }
 
@@ -1637,6 +1879,24 @@ function drawEnemy(e) {
       }
       break;
     }
+    case "boss": {
+      const s = 1.45, fl = e.flash > 0 && Math.sin(g.time * 60) > 0;
+      ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s);
+      const body = fl ? "#ffffff" : "#7b2d3a", dark = fl ? "#ffd6d6" : "#4e1621";
+      ctx.fillStyle = dark;
+      ctx.beginPath(); ctx.moveTo(-14, -8); ctx.lineTo(-19, -22); ctx.lineTo(-7, -13); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(14, -8); ctx.lineTo(19, -22); ctx.lineTo(7, -13); ctx.fill();
+      box(-16, -14, 32, 30, 10, dark); box(-14, -14, 28, 26, 9, body);
+      ctx.fillStyle = Math.sin(g.time * 8) > 0 ? "#ffd166" : "#ff7a1f";
+      ctx.fillRect(-10, -5, 7, 4); ctx.fillRect(3, -5, 7, 4);
+      ctx.fillStyle = dark; ctx.fillRect(-8, 5, 16, 3);
+      ctx.fillStyle = "#f2eefe"; for (let i = 0; i < 4; i++) ctx.fillRect(-7 + i * 4, 5, 2, 3);
+      ctx.restore();
+      const hpMax = g.bossHPMax;
+      const barY = e.r <= 2 ? y + 50 : y - 14; // under the boss when it is up against the top wall
+      for (let i = 0; i < hpMax; i++) box(cx - hpMax * 4 + i * 8, barY, 6, 5, 1, i < e.hp ? "#ff4d6d" : "#3a3270");
+      break;
+    }
     case "rocky": {
       box(cx - 15, cy - 13, 30, 28, 9, "#7a6a5a"); box(cx - 13, cy - 13, 26, 24, 8, "#a08b74");
       ctx.fillStyle = "#5c4d40"; ctx.fillRect(cx - 9, cy - 9, 18, 3);
@@ -1742,6 +2002,11 @@ function draw() {
   ctx.clearRect(0, 0, cv.width, cv.height);
   if (!g) return;
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) drawTile(r, c);
+  for (const [r, c] of g.spawns) {
+    ctx.strokeStyle = "rgba(201,167,255,.55)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(c * T + 24, r * T + 24, 13, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(c * T + 24, r * T + 24, 6 + Math.sin(g.time * 3) * 1.5, 0, Math.PI * 2); ctx.stroke();
+  }
   for (const [k, kind] of g.hearts) drawHeart(Math.floor(k / N), k % N, kind);
   drawChest();
   for (const f of g.framers) drawFramer(f);
@@ -1768,7 +2033,7 @@ let hudCache = "";
 function updateHud(force) {
   if (!g) return;
   const L = g.lolo;
-  const pw = [L.hammer ? `Hammer ×${L.hammer}` : "", L.bridges ? `Bridge ×${L.bridges}` : ""].filter(Boolean).join(" · ") || "none";
+  const pw = [L.hammer ? `Hammer ×${L.hammer}` : "", L.bridges ? `Bridge ×${L.bridges}` : "", L.arrows ? `Arrow ×${L.arrows}` : ""].filter(Boolean).join(" · ") || "none";
   const s = `${g.heartsTotal - g.heartsLeft}/${g.heartsTotal}|${g.lolo.shots}|${deaths}|${pw}`;
   if (s === hudCache && !force) return;
   hudCache = s;
@@ -1786,6 +2051,7 @@ function showOverlay(id) {
 function buildMenu() {
   const grid = $("levelGrid"); grid.innerHTML = "";
   LEVELS.forEach((lv, i) => {
+    if (lv.part) { const h = document.createElement("div"); h.className = "part"; h.textContent = lv.part; grid.appendChild(h); }
     const b = document.createElement("button");
     b.type = "button"; b.className = "lv" + (done.has(i) ? " done" : ""); b.id = "lv" + i;
     b.innerHTML = `${i + 1}<span>${lv.name}</span>`;

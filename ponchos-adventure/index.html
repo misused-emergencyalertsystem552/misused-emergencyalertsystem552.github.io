@@ -68,6 +68,8 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
 .difficulty { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .difficulty > span { font-family: var(--font-display); font-size: .75rem; color: var(--muted); letter-spacing: .06em; }
 .difficulty p { flex-basis: 100%; }
+.resetAsk { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--fg); font-size: .9rem; }
+.resetAsk .primary { font-size: .75rem; padding: 6px 10px; }
 .btn.seg[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
 .levels .part { grid-column: 1 / -1; font-family: var(--font-display); color: var(--gold); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; padding-top: 6px; }
 .lv.done::after { content: "cleared"; font-family: var(--font-body); font-size: .65rem; color: var(--emerald); }
@@ -149,6 +151,12 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
           <button class="btn seg" id="difLolo" type="button" aria-pressed="true">Lolo</button>
           <button class="btn seg" id="difEasy" type="button" aria-pressed="false">Easy</button>
           <p class="small">Lolo: 5 lives per floor, rooms open in order, faster monsters, tips unlock after 3 tries. Easy: no lives, every room open, tips always shown. Changes apply from the next room.</p>
+          <button class="btn" id="btnReset" type="button">Reset progress</button>
+          <div class="resetAsk" id="resetAsk" hidden>
+            <span>Erase every cleared room and start again from room 1?</span>
+            <button class="btn primary" id="btnResetYes" type="button">Yes, start over</button>
+            <button class="btn" id="btnResetNo" type="button">Cancel</button>
+          </div>
         </div>
         <div class="levels" id="levelGrid"></div>
         <h3>How to play</h3>
@@ -1360,7 +1368,7 @@ const ETYPE = {
   B: { kind: "boss", shoot: true, speed: 0.45, dir: "right" },
 };
 
-const VERSION = "2.0";
+const VERSION = "2.1";
 document.getElementById("version").textContent = "Version " + VERSION;
 
 const cv = document.getElementById("cv");
@@ -2309,6 +2317,17 @@ $("btnHint").addEventListener("click", () => { openHint(); $("btnHint").blur(); 
 $("btnHintClose").addEventListener("click", closeMenu);
 $("btnClose").addEventListener("click", closeMenu);
 $("difLolo").addEventListener("click", () => setDifficulty("lolo"));
+$("btnReset").addEventListener("click", () => { $("resetAsk").hidden = false; $("btnReset").hidden = true; });
+$("btnResetNo").addEventListener("click", () => { $("resetAsk").hidden = true; $("btnReset").hidden = false; });
+$("btnResetYes").addEventListener("click", () => {
+  done.clear();
+  try { localStorage.removeItem("ponchos.done"); localStorage.removeItem("jewelkeep.done"); } catch (e) {}
+  saveDone();
+  for (const k in fails) delete fails[k];
+  deaths = 0; livesFloor = -1;
+  $("resetAsk").hidden = true; $("btnReset").hidden = false;
+  loadLevel(0);
+});
 $("difEasy").addEventListener("click", () => setDifficulty("easy"));
 
 $("btnStart").addEventListener("click", () => { showOverlay(null); });

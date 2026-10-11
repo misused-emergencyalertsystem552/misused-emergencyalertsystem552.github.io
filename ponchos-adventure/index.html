@@ -44,6 +44,7 @@ h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; marg
 .hud { width: 100%; display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 2px solid var(--edge); padding: 4px 10px; font-variant-numeric: tabular-nums; font-size: .95rem; }
 .chip b { font-family: var(--font-display); font-weight: 400; color: var(--muted); font-size: .7rem; letter-spacing: .08em; }
+.chip span { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-weight: 700; }
 .chip .h { color: var(--heart); } .chip .s { color: #8fd3ff; }
 .hud .spacer { flex: 1; }
 .btn { font-family: var(--font-display); font-size: .75rem; letter-spacing: .06em; background: var(--panel); color: var(--fg); border: 2px solid var(--edge); padding: 6px 10px; cursor: pointer; }
@@ -59,10 +60,15 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
 .card h3 { font-family: var(--font-display); margin: 4px 0 0; color: var(--gold); font-size: .9rem; letter-spacing: .06em; }
 .card p { margin: 0; line-height: 1.4; color: var(--fg); }
 .card .small { color: var(--muted); font-size: .9rem; }
-.levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .lv { font-family: var(--font-display); background: var(--bg); color: var(--fg); border: 2px solid var(--edge); padding: 8px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 1.1rem; }
 .lv span { font-family: var(--font-body); font-size: .7rem; color: var(--muted); text-align: center; line-height: 1.1; }
 .lv.done { border-color: var(--emerald); }
+.lv.locked { opacity: .45; cursor: not-allowed; }
+.difficulty { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.difficulty > span { font-family: var(--font-display); font-size: .75rem; color: var(--muted); letter-spacing: .06em; }
+.difficulty p { flex-basis: 100%; }
+.btn.seg[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
 .levels .part { grid-column: 1 / -1; font-family: var(--font-display); color: var(--gold); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; padding-top: 6px; }
 .lv.done::after { content: "cleared"; font-family: var(--font-body); font-size: .65rem; color: var(--emerald); }
 .lv:hover, .lv:focus-visible { border-color: var(--gold); outline: none; }
@@ -112,7 +118,7 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
   .fire { width: 72px; height: 72px; }
   .fire.tool { width: 54px; height: 54px; font-size: .55rem; }
 }
-@media (max-width: 420px) { h1 { font-size: 1.25rem; } .levels { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { h1 { font-size: 1.25rem; } .lv { font-size: .95rem; padding: 6px 2px; } .lv span { font-size: .58rem; } }
 </style>
 </head>
 <body>
@@ -126,7 +132,7 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
     <div class="chip"><b>HEARTS</b><span class="h" id="hudHearts">0/0</span></div>
     <div class="chip"><b>SHOTS</b><span class="s" id="hudShots">0</span></div>
     <div class="chip"><b>POWER</b><span id="hudPower">none</span></div>
-    <div class="chip"><b>RETRIES</b><span id="hudDeaths">0</span></div>
+    <div class="chip"><b id="hudLifeLabel">LIVES</b><span id="hudDeaths">0</span></div>
     <div class="spacer"></div>
     <button class="btn" id="btnSound" type="button" aria-pressed="true">Music on</button>
     <button class="btn" id="btnHint" type="button">Hint</button>
@@ -138,6 +144,12 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
     <div class="overlay" id="ovMenu">
       <div class="card">
         <div class="cardHead"><h2>Level Select</h2><button class="btn" id="btnClose" type="button">Back to room</button></div>
+        <div class="difficulty">
+          <span>Difficulty</span>
+          <button class="btn seg" id="difLolo" type="button" aria-pressed="true">Lolo</button>
+          <button class="btn seg" id="difEasy" type="button" aria-pressed="false">Easy</button>
+          <p class="small">Lolo: 5 lives per floor, rooms open in order, faster monsters, tips unlock after 3 tries. Easy: no lives, every room open, tips always shown. Changes apply from the next room.</p>
+        </div>
         <div class="levels" id="levelGrid"></div>
         <h3>How to play</h3>
         <p>Poncho the cat must cross the keep's rooms. In each room, collect every Heart Framer to open the chest, take the jewel, and leave through the door that opens at the top.</p>
@@ -284,7 +296,7 @@ const LEVELS = [
       "W.h.......h.W",
       "W..T..a..T..W",
       "W...........W",
-      "W.T.T.m.T.T.W",
+      "W.T.T.h.T.T.W",
       "W...........W",
       "W.h.......h.W",
       "W...........W",
@@ -305,7 +317,7 @@ const LEVELS = [
       "W.h.......h.W",
       "W...TTTTT...W",
       "W.h.......h.W",
-      "W.....m.....W",
+      "W.....h.....W",
       "W.....L.....W",
       "WWWWWWWWWWWWW"] },
   { name: "The Keep",
@@ -560,7 +572,7 @@ const LEVELS = [
       "W.....~.....W",
       "W..s..~..s..W",
       "W.....~.....W",
-      "W.m...~..m..W",
+      "W.m...~..h..W",
       "W.....~.....W",
       "W..L..~.....W",
       "WWWWWWWWWWWWW"] },
@@ -988,7 +1000,7 @@ const LEVELS = [
       "WXXXXXXXXXXXW",
       "W...G...G...W",
       "W...........W",
-      "W.m...b...m.W",
+      "W.m...b...h.W",
       "W...........W",
       "W.TT.....TT.W",
       "W.h.......h.W",
@@ -1057,7 +1069,7 @@ const LEVELS = [
       "W...........W",
       "WRRRRR.RRRRRW",
       "W.m.........W",
-      "W.m.L.....m.W",
+      "W.m.L.....h.W",
       "W...........W",
       "WWWWWWWWWWWWW"] },
   { name: "Don Duo", theme: "castle",
@@ -1153,13 +1165,183 @@ const LEVELS = [
       "W...........W",
       "WRRRRR.RRRRRW",
       "W...........W",
-      "W.m.m.L.m.m.W",
+      "W.m.m.L.m.h.W",
       "W...........W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Sentry Post", theme: "castle", part: "The Summit",
+    hint: "Three Medusas watch this hall. Each framer can close only one line, so decide where all three end up before your first push.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W....RCR....W",
+      "W..h.T.T..h.W",
+      "WM....E.h...W",
+      "W.E.h.R.....W",
+      "W....T.T....W",
+      "WT..hR.R...TW",
+      "W..........MW",
+      "W...........W",
+      "W....RRR....W",
+      "W...E.....EMW",
+      "W..L........W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Rubble Stair", theme: "castle",
+    hint: "The hearts sit in the open, but every route crosses a gaze. Some framers have to travel the long way round.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W...h.C.....W",
+      "W....ER.....W",
+      "WMRR.E...RR.W",
+      "W..RR...RR..W",
+      "W...T.R.T...W",
+      "W..T.....T..W",
+      "W......h...MW",
+      "WR...hh....RW",
+      "WR...R.R...RW",
+      "WR.E.......RW",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Twin Watch", theme: "castle",
+    hint: "Medusas guard both sides of the middle row. A framer pushed one square too far can't be pulled back.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W...h.C.....W",
+      "W.R..R.R..R.W",
+      "W..RR...RR..W",
+      "W....R.R....W",
+      "W...........W",
+      "W.R.......R.W",
+      "WM.T..E..T.MW",
+      "W........h..W",
+      "W...R.R.R...W",
+      "W.E.h...E...W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Thornwall", theme: "castle",
+    hint: "Trees stop you but not a stare. Use the rock walls to herd the framers where you need them.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W...h.C.....W",
+      "W.TT.E...TT.W",
+      "W...RT.TR...W",
+      "WMR..R.R..R.W",
+      "W.T.......TMW",
+      "WRR.RR.RR.RRW",
+      "WTR...h...RTW",
+      "WM.TE....T..W",
+      "W......h...hW",
+      "W.E.R...R..hW",
+      "W.L.........W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Long Shadow", theme: "castle",
+    hint: "Three framers, hearts scattered through Medusa's sight and plenty of ways to jam a corridor. Count your pushes.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W....RCR...hW",
+      "W..........hW",
+      "W....R.R..h.W",
+      "W...T...T...W",
+      "W.T...h...T.W",
+      "WM..........W",
+      "W....R.R....W",
+      "W.R.RR.RR.R.W",
+      "W...hE..E..MW",
+      "W.R....E..R.W",
+      "W......L....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Heart Hoard", theme: "castle",
+    hint: "Five hearts wait up near the chest. Clear a safe lane up the middle first.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "Whh...Ch....W",
+      "W....R.R..E.W",
+      "W..h..Rh....W",
+      "W...........W",
+      "W..........MW",
+      "WM..T...T...W",
+      "W...R.E.R...W",
+      "WR.........RW",
+      "WR.R..E..R.RW",
+      "W...........W",
+      "W.....L.....W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Bottleneck", theme: "castle",
+    hint: "The room narrows to single-square gaps. Push in the wrong order and a framer plugs the only way through.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "Wh...hC.....W",
+      "WT.........TW",
+      "W......E...MW",
+      "WM...T.T....W",
+      "WRRRE....RRRW",
+      "W...E.......W",
+      "W.T.R...R.T.W",
+      "WR.........RW",
+      "W...T.R.Th.MW",
+      "WR.R.R.R.RERW",
+      "W.........L.W",
+      "WWWWWWWWWWWWW"] },
+  { name: "Three Eyes", theme: "castle",
+    hint: "Three Medusas cover the lower half. Your first framer is the hardest one to place.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W....RCR...hW",
+      "W...........W",
+      "W.......E...W",
+      "W....hR.....W",
+      "WMT.T.h.T.T.W",
+      "W.....E...h.W",
+      "W...TRRRT...W",
+      "WM.........MW",
+      "W......E.Eh.W",
+      "WRR.......RRW",
+      "W....L......W",
+      "WWWWWWWWWWWWW"] },
+  { name: "The Gauntlet", theme: "castle",
+    hint: "Two Medusas stare down the right side and a long push is needed on the left. Pace yourself.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W....RCR....W",
+      "W...........W",
+      "W.R..RER.hR.W",
+      "W.......h..MW",
+      "W.E.........W",
+      "W..........MW",
+      "WT.R.T.T.R.TW",
+      "WR..R...R..RW",
+      "WR.........RW",
+      "Wh.E........W",
+      "W..........LW",
+      "WWWWWWWWWWWWW"] },
+  { name: "Summit", theme: "castle",
+    hint: "The last climb: two Medusas, three framers and the longest solution in the keep.",
+    map: [
+      "WWWWWWDWWWWWW",
+      "W.....C.....W",
+      "W.T.......T.W",
+      "W......h...MW",
+      "WR.........RW",
+      "WRR.......RRW",
+      "WM..........W",
+      "W.E.T...T...W",
+      "W..R..h..R..W",
+      "W.hE..R.....W",
+      "W.RT..R.ETR.W",
+      "W...L.......W",
       "WWWWWWWWWWWWW"] },
 ];
 
 const T = 48, N = 13, MOVE = 0.16;
-const EGG_TIME = 7, RAFT_TIME = 5, RESPAWN = 9, SHOT_SPEED = 14, FIRE_SPEED = 10;
+const SHOT_SPEED = 14, FIRE_SPEED = 10, FLOOR = 5;
+// "lolo" plays like the NES games: faster monsters, short-lived eggs, lives per floor, rooms in order, tips locked.
+const TUNING = {
+  lolo: { egg: 5, raft: 3.5, respawn: 9, monster: 0.8, don: 0.4, bossFire: 0.8, lives: 5, hintAfter: 3, locked: true },
+  easy: { egg: 7, raft: 5, respawn: 9, monster: 1, don: 0.5, bossFire: 1, lives: 0, hintAfter: 0, locked: false },
+};
+let difficulty = "lolo";
+try { if (localStorage.getItem("ponchos.difficulty") === "easy") difficulty = "easy"; } catch (e) {}
+const tune = () => TUNING[difficulty];
+let lives = 0, livesFloor = -1;
+const fails = {};
 const DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
 const OPP = { up: "down", down: "up", left: "right", right: "left" };
 const ARROW = { "^": "up", "v": "down", "<": "left", ">": "right" };
@@ -1178,7 +1360,7 @@ const ETYPE = {
   B: { kind: "boss", shoot: true, speed: 0.45, dir: "right" },
 };
 
-const VERSION = "1.6";
+const VERSION = "2.0";
 document.getElementById("version").textContent = "Version " + VERSION;
 
 const cv = document.getElementById("cv");
@@ -1211,7 +1393,7 @@ function loadLevel(idx, retry) {
       else if (ETYPE[ch]) {
         const ty = ETYPE[ch];
         enemies.push(Object.assign(mover(r, c), {
-          kind: ty.kind, shoot: ty.shoot, speed: ty.speed || 0.5,
+          kind: ty.kind, shoot: ty.shoot, speed: (ty.speed || 0.5) * (ty.kind === "rocky" ? 1 : tune().monster),
           sr: r, sc: c, sdir: ty.dir || "down", dir: ty.dir || "down",
           state: "normal", timer: 0, cd: 1, raft: false, fb: false, respawnT: 0,
           hp: ty.kind === "boss" ? (lv.bossHP || 4) : 0, fcd: 1.5, flash: 0,
@@ -1221,12 +1403,16 @@ function loadLevel(idx, retry) {
     }
     grid.push(row);
   }
-  g = { idx, grid, hearts, spawns, bossHPMax: lv.bossHP || 4, bossFire: lv.bossFire || 1.6, theme: lv.theme || "garden", heartsTotal: hearts.size, heartsLeft: hearts.size, chest, framers, enemies, lolo,
+  g = { idx, grid, hearts, spawns, bossHPMax: lv.bossHP || 4, bossFire: (lv.bossFire || 1.6) * tune().bossFire, theme: lv.theme || "garden", heartsTotal: hearts.size, heartsLeft: hearts.size, chest, framers, enemies, lolo,
         shot: null, fireballs: [], particles: [], doorOpen: false, jewel: false, cleared: false,
         time: 0, beam: null, paused: false, flash: 0 };
   $("levelName").textContent = `Room ${idx + 1} · ${lv.name}`;
   updateHud(true);
-  if (!retry) { showOverlay(null); setTrack(idx); }
+  if (!retry) {
+    showOverlay(null); setTrack(idx);
+    const floor = Math.floor(idx / FLOOR);
+    if (floor !== livesFloor) { livesFloor = floor; lives = tune().lives; }
+  }
 }
 
 function mover(r, c) { return { r, c, fr: r, fc: c, t: 1, dur: MOVE }; }
@@ -1287,12 +1473,12 @@ function tryPush(o, r, c, dir, isEgg) {
   if (framerAt(r2, c2) || enemyAt(r2, c2)) return false;
   if (t === "X") {
     if (!isEgg) return false;
-    o.state = "gone"; o.raft = false; o.respawnT = RESPAWN; burst(c2, r2, "#ff7a1f", 14); sfx("push");
+    o.state = "gone"; o.raft = false; o.respawnT = tune().respawn; burst(c2, r2, "#ff7a1f", 14); sfx("push");
     return true;
   }
   if (isWater(t)) {
     if (!isEgg) return false;
-    o.raft = true; o.timer = RAFT_TIME; o.drift = 0.45;
+    o.raft = true; o.timer = tune().raft; o.drift = 0.45;
   }
   startMove(o, r2, c2); sfx("push");
   return true;
@@ -1343,15 +1529,41 @@ function killLolo(beamFrom) {
   burst(rpos(L).x, rpos(L).y, "#8fd3ff", 18);
 }
 
+function onDeath() {
+  deaths++; fails[g.idx] = (fails[g.idx] || 0) + 1;
+  if (tune().lives) {
+    lives--;
+    if (lives <= 0) { gameOver(); return; }
+  }
+  loadLevel(g.idx, true);
+}
+let nextAction = null;
+function gameOver() {
+  const start = Math.floor(g.idx / FLOOR) * FLOOR;
+  g.cleared = true; g.lolo.dead = false; livesFloor = -1;
+  $("clearTitle").textContent = "Out of lives";
+  $("clearText").textContent = `Floor ${start / FLOOR + 1} starts over from room ${start + 1}: ${LEVELS[start].name}.`;
+  $("btnNext").textContent = "Restart floor";
+  nextAction = () => loadLevel(start);
+  showOverlay("ovClear");
+}
+function retryRoom() {
+  if (!g || g.cleared) return;
+  showOverlay(null);
+  if (tune().lives) { if (!g.lolo.dead) killLolo(); }  // like Lolo's self-destruct, a retry costs a life
+  else { deaths++; fails[g.idx] = (fails[g.idx] || 0) + 1; loadLevel(g.idx, true); }
+}
+
 function clearLevel() {
   g.cleared = true; sfx("clear");
   done.add(g.idx); saveDone(); buildMenu();
-  const last = g.idx === LEVELS.length - 1;
-  $("clearTitle").textContent = last ? "The keep is yours!" : `Room ${g.idx + 1} cleared`;
+  const last = g.idx === LEVELS.length - 1, floorEnd = (g.idx + 1) % FLOOR === 0;
+  $("clearTitle").textContent = last ? "The keep is yours!" : floorEnd ? `Floor ${(g.idx + 1) / FLOOR} complete!` : `Room ${g.idx + 1} cleared`;
   $("clearText").textContent = last
     ? `Poncho carried every jewel out of the keep with ${deaths} ${deaths === 1 ? "retry" : "retries"}. Replay any room from the level list.`
     : `On to room ${g.idx + 2}: ${LEVELS[g.idx + 1].name}.`;
-  $("btnNext").textContent = last ? "Back to levels" : "Next room";
+  $("btnNext").textContent = last ? "Back to levels" : floorEnd ? "Next floor" : "Next room";
+  nextAction = () => { if (g.idx < LEVELS.length - 1) loadLevel(g.idx + 1); else openMenu(); };
   showOverlay("ovClear");
 }
 
@@ -1446,7 +1658,7 @@ function updateEnemy(e, dt) {
       if (e.raft) {
         if (L.r === e.r && L.c === e.c) killLolo();
         burst(e.c, e.r, "#9fd0ff", 12);
-        e.raft = false; e.state = "gone"; e.respawnT = RESPAWN;
+        e.raft = false; e.state = "gone"; e.respawnT = tune().respawn;
       } else { e.state = "normal"; e.cd = 0.8; }
     }
     return;
@@ -1462,10 +1674,10 @@ function updateEnemy(e, dt) {
     case "don":
       e.cd -= dt;
       if (e.cd <= 0 && e.t >= 1) {
-        e.cd = 0.5;
+        e.cd = tune().don;
         for (let i = 0; i < 2; i++) {
           const [dr, dc] = DIRS[e.dir], nr = e.r + dr, nc = e.c + dc;
-          if (enemyCanEnter(e, nr, nc, e.dir, e.r, e.c) && !(L.r === nr && L.c === nc)) { startMove(e, nr, nc, 0.45); break; }
+          if (enemyCanEnter(e, nr, nc, e.dir, e.r, e.c) && !(L.r === nr && L.c === nc)) { startMove(e, nr, nc, tune().don * 0.9); break; }
           e.dir = OPP[e.dir];
         }
       }
@@ -1545,12 +1757,12 @@ function hitEnemy(e, dir) {
     return;
   }
   if (e.state === "egg") {
-    e.state = "gone"; e.respawnT = RESPAWN;
+    e.state = "gone"; e.respawnT = tune().respawn;
     const [dr, dc] = DIRS[dir];
     g.particles.push({ x: p.x, y: p.y, vx: dc * 16, vy: dr * 16 - 2, life: 0.8, egg: true });
     return;
   }
-  sfx("egg"); e.state = "egg"; e.timer = EGG_TIME; e.t = 1; e.fr = e.r; e.fc = e.c; e.fb = false;
+  sfx("egg"); e.state = "egg"; e.timer = tune().egg; e.t = 1; e.fr = e.r; e.fc = e.c; e.fb = false;
   burst(p.x, p.y, "#ffffff", 8);
 }
 
@@ -1611,7 +1823,7 @@ function update(dt) {
   const L = g.lolo;
   if (L.dead) {
     L.deadT += dt;
-    if (L.deadT > 1.3) { deaths++; loadLevel(g.idx, true); }
+    if (L.deadT > 1.3) onDeath();
     return;
   }
   if (g.cleared) return;
@@ -2037,12 +2249,14 @@ function updateHud(force) {
   if (!g) return;
   const L = g.lolo;
   const pw = [L.hammer ? `Hammer ×${L.hammer}` : "", L.bridges ? `Bridge ×${L.bridges}` : "", L.arrows ? `Arrow ×${L.arrows}` : ""].filter(Boolean).join(" · ") || "none";
-  const s = `${g.heartsTotal - g.heartsLeft}/${g.heartsTotal}|${g.lolo.shots}|${deaths}|${pw}`;
+  const lifeTxt = tune().lives ? String(lives) : String(deaths);
+  const s = `${g.heartsTotal - g.heartsLeft}/${g.heartsTotal}|${g.lolo.shots}|${lifeTxt}|${pw}|${difficulty}`;
   if (s === hudCache && !force) return;
   hudCache = s;
   $("hudHearts").textContent = `${g.heartsTotal - g.heartsLeft}/${g.heartsTotal}`;
   $("hudShots").textContent = g.lolo.shots;
-  $("hudDeaths").textContent = deaths;
+  $("hudDeaths").textContent = lifeTxt;
+  $("hudLifeLabel").textContent = tune().lives ? "LIVES" : "RETRIES";
   $("hudPower").textContent = pw;
 }
 function showOverlay(id) {
@@ -2051,16 +2265,28 @@ function showOverlay(id) {
   const focus = { ovIntro: "btnStart", ovClear: "btnNext" }[id];
   if (focus) setTimeout(() => $(focus).focus(), 30);
 }
+function unlocked(i) { return !tune().locked || i === 0 || done.has(i) || done.has(i - 1); }
 function buildMenu() {
   const grid = $("levelGrid"); grid.innerHTML = "";
+  let part = "";
   LEVELS.forEach((lv, i) => {
-    if (lv.part) { const h = document.createElement("div"); h.className = "part"; h.textContent = lv.part; grid.appendChild(h); }
-    const b = document.createElement("button");
-    b.type = "button"; b.className = "lv" + (done.has(i) ? " done" : ""); b.id = "lv" + i;
-    b.innerHTML = `${i + 1}<span>${lv.name}</span>`;
-    b.addEventListener("click", () => loadLevel(i));
+    if (lv.part) part = lv.part;
+    if (i % FLOOR === 0) { const h = document.createElement("div"); h.className = "part"; h.textContent = `Floor ${i / FLOOR + 1} · ${part}`; grid.appendChild(h); }
+    const b = document.createElement("button"), open = unlocked(i);
+    b.type = "button"; b.className = "lv" + (done.has(i) ? " done" : "") + (open ? "" : " locked"); b.id = "lv" + i;
+    b.innerHTML = `${i + 1}<span>${open ? lv.name : "Locked"}</span>`;
+    b.disabled = !open;
+    b.addEventListener("click", () => { livesFloor = -1; loadLevel(i); });
     grid.appendChild(b);
   });
+  $("difLolo").setAttribute("aria-pressed", String(difficulty === "lolo"));
+  $("difEasy").setAttribute("aria-pressed", String(difficulty === "easy"));
+}
+function setDifficulty(d) {
+  difficulty = d;
+  try { localStorage.setItem("ponchos.difficulty", d); } catch (e) {}
+  livesFloor = -1; lives = tune().lives; if (g) livesFloor = Math.floor(g.idx / FLOOR);
+  buildMenu(); updateHud(true);
 }
 function openMenu() {
   buildMenu(); showOverlay("ovMenu");
@@ -2072,19 +2298,22 @@ function closeMenu() { if (g) showOverlay(null); }
 function openHint() {
   if (!g || g.cleared) return;
   $("hintTitle").textContent = `Room ${g.idx + 1}: ${LEVELS[g.idx].name}`;
-  $("hintText").textContent = LEVELS[g.idx].hint;
+  const need = tune().hintAfter - (fails[g.idx] || 0);
+  $("hintText").textContent = need > 0 && !done.has(g.idx)
+    ? `The tip for this room unlocks after ${need} more ${need === 1 ? "try" : "tries"}. Look for what blocks each line of sight, and plan your pushes before you move.`
+    : LEVELS[g.idx].hint;
   held.length = 0;
   showOverlay("ovHint");
 }
 $("btnHint").addEventListener("click", () => { openHint(); $("btnHint").blur(); });
 $("btnHintClose").addEventListener("click", closeMenu);
 $("btnClose").addEventListener("click", closeMenu);
+$("difLolo").addEventListener("click", () => setDifficulty("lolo"));
+$("difEasy").addEventListener("click", () => setDifficulty("easy"));
 
 $("btnStart").addEventListener("click", () => { showOverlay(null); });
-$("btnNext").addEventListener("click", () => {
-  if (g.idx < LEVELS.length - 1) loadLevel(g.idx + 1); else openMenu();
-});
-$("btnRetry").addEventListener("click", () => { if (g) { showOverlay(null); loadLevel(g.idx, true); } $("btnRetry").blur(); });
+$("btnNext").addEventListener("click", () => { if (nextAction) nextAction(); });
+$("btnRetry").addEventListener("click", () => { retryRoom(); $("btnRetry").blur(); });
 $("btnMenu").addEventListener("click", () => { openMenu(); $("btnMenu").blur(); });
 
 // ---------- Music & sound ----------
@@ -2228,6 +2457,7 @@ const KEYMAP = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight
 
 window.addEventListener("keydown", ev => {
   const d = KEYMAP[ev.key];
+  if (ev.key.startsWith("Arrow")) ev.preventDefault();  // held arrows must never scroll the page, even behind a popup
   const overlayOpen = !$("ovMenu").hidden || !$("ovIntro").hidden || !$("ovClear").hidden || !$("ovHint").hidden;
   if (!$("ovIntro").hidden && (d || ev.key === " ")) { ev.preventDefault(); showOverlay(null); if (d) press(d); return; }
   if (overlayOpen) {
@@ -2239,7 +2469,7 @@ window.addEventListener("keydown", ev => {
   if (d) { ev.preventDefault(); press(d); }
   else if (ev.key === " " || ev.key === "z" || ev.key === "Z" || ev.key === "j") { ev.preventDefault(); if (!ev.repeat) fire(); }
   else if (ev.key === "x" || ev.key === "X" || ev.key === "k") { ev.preventDefault(); if (!ev.repeat) usePower(); }
-  else if (ev.key === "r" || ev.key === "R") { if (g && !g.cleared) loadLevel(g.idx, true); }
+  else if (ev.key === "r" || ev.key === "R") retryRoom();
   else if (ev.key === "m" || ev.key === "M") setSound(!soundOn);
   else if (ev.key === "h" || ev.key === "H") openHint();
   else if (ev.key === "Escape" || ev.key === "l" || ev.key === "L") openMenu();
@@ -2267,7 +2497,7 @@ function frame(now) {
 }
 
 let manual = false;
-window.__jk = { get g() { return g; }, loadLevel, tryMove, fire, usePower, held, sees, tick: dt => update(dt), setManual: v => { manual = v; } };
+window.__jk = { get g() { return g; }, loadLevel, tryMove, fire, usePower, setDifficulty, get lives() { return lives; }, held, sees, tick: dt => update(dt), setManual: v => { manual = v; } };
 const firstOpen = LEVELS.findIndex((_, i) => !done.has(i));
 loadLevel(firstOpen < 0 ? 0 : firstOpen);
 requestAnimationFrame(frame);

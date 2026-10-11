@@ -860,8 +860,9 @@ function setMusic(play) {
 }
 musicBtn.addEventListener("click", () => setMusic(!Music.on));
 // browsers only allow sound after an interaction, so a remembered "on" resumes at the first tap or key
-let musicPref = false;
-try { musicPref = localStorage.getItem("hangman-music") === "1"; } catch (e) {}
+// music is on by default; it stays off only if the player switched it off
+let musicPref = true;
+try { musicPref = localStorage.getItem("hangman-music") !== "0"; } catch (e) {}
 if (musicPref) {
   const resume = e => {
     ["click", "touchend", "keydown"].forEach(t => removeEventListener(t, resume, true));

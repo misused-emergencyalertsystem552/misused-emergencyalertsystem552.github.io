@@ -225,21 +225,30 @@ kbd { font-family: var(--font-hand); border: 1px solid var(--chalk-dim); border-
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 @media (max-width: 720px) {
-  body { padding-block: 10px; }
-  .frame { padding: 10px; }
-  .board { padding: 14px 14px 12px; }
+  /* fill the phone's visible screen: the board stretches and the extra height goes to bigger letter keys */
+  body {
+    padding-block: 10px;
+    min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    display: flex; flex-direction: column;
+  }
+  .frame { padding: 10px; flex: 1; display: flex; flex-direction: column; width: 100%; }
+  .board { padding: 14px 14px 12px; flex: 1; display: flex; flex-direction: column; }
+  .ledge { flex: none; }
   header { margin-bottom: 10px; padding-bottom: 8px; }
   h1 { font-size: 30px; }
   .stats { gap: 12px; font-size: 14px; }
   .play {
     grid-template-columns: minmax(0, 42%) minmax(0, 1fr);
     grid-template-areas: "stage cat" "stage misses" "word word" "verdict verdict" "keys keys" "actions actions" "version version";
-    column-gap: 14px; row-gap: 12px; align-items: center;
+    column-gap: 14px; row-gap: 12px; align-items: center; align-content: space-between;
+    flex: 1;
   }
   .side { display: contents; }
   .stage { grid-area: stage; }
   .cat { grid-area: cat; flex-direction: column; align-items: flex-start; gap: 8px; }
-  .cat-name { font-size: 22px; }
+  .cat-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .cat > div { min-width: 0; max-width: 100%; }
   .cat select.btn { font-size: 14px; max-width: 100%; }
   .misses { grid-area: misses; align-self: start; }
   .word { grid-area: word; min-height: 0; --u: min(46px, calc((100vw - 84px) / var(--n, 8))); }
@@ -248,8 +257,13 @@ kbd { font-family: var(--font-hand); border: 1px solid var(--chalk-dim); border-
   .verdict h2 { font-size: 28px; }
   .keys { grid-area: keys; gap: 6px; }
   .row { gap: 5px; }
+  .key { aspect-ratio: auto; height: 40px; height: clamp(38px, 6dvh, 60px); }
   .actions { grid-area: actions; gap: 8px; }
-  .actions .btn { font-size: 14px; padding: 5px 12px; }
+  .actions { flex-wrap: nowrap; }
+  .actions .btn { font-size: 14px; padding: 5px 8px; flex: 1 1 auto; white-space: nowrap; }
+  .verdict { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; row-gap: 2px; }
+  .verdict p { grid-column: 1; font-size: 15px; }
+  .verdict .btn { grid-column: 2; grid-row: 1 / span 2; }
   .long, .hint-line { display: none; }
   .version { grid-area: version; }
 }
@@ -316,7 +330,7 @@ kbd { font-family: var(--font-hand); border: 1px solid var(--chalk-dim); border-
 
 <script>
 (() => {
-const VERSION = "v1.1";
+const VERSION = "v1.2";
 document.getElementById("version").textContent = "Hangman " + VERSION;
 const WORDS = {
   "Animals": ["platypus", "armadillo", "chameleon", "flamingo", "hedgehog", "narwhal", "porcupine", "salamander", "wolverine", "jellyfish", "kangaroo", "octopus", "pelican", "raccoon", "walrus", "axolotl", "alligator", "antelope", "baboon", "badger", "beaver", "bison", "buffalo", "butterfly", "camel", "caterpillar", "cheetah", "chimpanzee", "chinchilla", "chipmunk", "cobra", "coyote", "crocodile", "dolphin", "donkey", "dragonfly", "eagle", "elephant", "falcon", "ferret", "gazelle", "gecko", "giraffe", "gorilla", "grasshopper", "hamster", "hippopotamus", "hummingbird", "hyena", "iguana", "jaguar", "koala", "ladybug", "lemur", "leopard", "lobster", "meerkat", "mongoose", "moose", "mosquito", "ostrich", "otter", "panther", "parrot", "peacock", "penguin", "pheasant", "piranha", "porpoise", "python", "rattlesnake", "reindeer", "rhinoceros", "scorpion", "seahorse", "squirrel", "starfish", "stingray", "tarantula", "tortoise", "toucan", "turtle", "vulture", "warthog", "weasel", "woodpecker", "yak", "zebra", "anteater", "bumblebee", "cockatoo", "cuttlefish", "manatee", "mandrill", "ocelot", "orangutan", "pangolin", "puffin", "quokka", "sloth", "tapir", "wombat"],

@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chalkboard Hangman</title>
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Kalam:wght@300;400;700&display=swap">
+<style>
+/* Layout: a framed classroom slate; gallows drawing on the left, word + chalk keyboard on the right; stacks on phones.
+   Deliberately single-theme: the slate is dark in every viewer theme. */
+:root {
+  color-scheme: dark;
+  --wall: #15100c;
+  --wood: #7a5434;
+  --wood-dark: #4a311d;
+  --slate: #22302b;
+  --slate-hi: #2c3d37;
+  --chalk: #ece7da;
+  --chalk-dim: rgba(236, 231, 218, 0.38);
+  --chalk-yellow: #f3d77a;
+  --chalk-pink: #f39a92;
+  --chalk-green: #aedba3;
+  --font-display: "Cabin Sketch", "Comic Sans MS", "Marker Felt", cursive;
+  --font-hand: "Kalam", "Segoe Print", "Bradley Hand", cursive;
+}
+html, body { height: 100%; }
+body {
+  background: radial-gradient(ellipse at 50% 0%, #2a1f17 0%, var(--wall) 70%);
+  color: var(--chalk);
+  font-family: var(--font-hand);
+  font-size: 17px;
+  padding-inline: 16px;
+  padding-block: 20px;
+  box-sizing: border-box;
+}
+* { box-sizing: border-box; }
+
+.frame {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 14px;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(92deg, rgba(0,0,0,0.12) 0 3px, transparent 3px 11px),
+    linear-gradient(180deg, var(--wood), var(--wood-dark));
+  box-shadow: 0 18px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+.board {
+  position: relative;
+  border-radius: 4px;
+  padding: 22px clamp(14px, 3vw, 34px) 26px;
+  background:
+    radial-gradient(ellipse 40% 30% at 20% 30%, rgba(255,255,255,0.05), transparent 70%),
+    radial-gradient(ellipse 35% 25% at 75% 70%, rgba(255,255,255,0.04), transparent 70%),
+    radial-gradient(ellipse 60% 20% at 60% 15%, rgba(255,255,255,0.035), transparent 70%),
+    linear-gradient(160deg, var(--slate-hi), var(--slate));
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.ledge {
+  height: 12px; margin: 10px -6px -4px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--wood), var(--wood-dark));
+  box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+  position: relative;
+}
+.ledge::before, .ledge::after {
+  content: ""; position: absolute; top: -7px; height: 8px; border-radius: 3px;
+}
+.ledge::before { left: 18%; width: 46px; background: var(--chalk); transform: rotate(-3deg); }
+.ledge::after  { left: 26%; width: 30px; background: var(--chalk-yellow); transform: rotate(4deg); }
+
+header {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px;
+  border-bottom: 2px dashed var(--chalk-dim);
+  padding-bottom: 10px; margin-bottom: 18px;
+}
+h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(30px, 5vw, 44px);
+  margin: 0; line-height: 1;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+h1 span { color: var(--chalk-yellow); }
+.head-right { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.music { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; padding: 4px 14px; }
+.eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+.eq i { display: block; width: 3px; height: 4px; background: var(--chalk); border-radius: 1px; }
+.music[aria-pressed="true"] { border-color: var(--chalk-yellow); color: var(--chalk-yellow); }
+.music[aria-pressed="true"] .eq i { background: var(--chalk-yellow); animation: eq 1.4s ease-in-out infinite; }
+.music[aria-pressed="true"] .eq i:nth-child(2) { animation-delay: -.5s; }
+.music[aria-pressed="true"] .eq i:nth-child(3) { animation-delay: -.9s; }
+@keyframes eq { 0%,100% { height: 4px; } 50% { height: 14px; } }
+.stats { display: flex; gap: 18px; font-size: 15px; color: var(--chalk-dim); }
+.stats b { color: var(--chalk); font-weight: 700; font-variant-numeric: tabular-nums; font-size: 18px; margin-left: 4px; }
+
+.play {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .play { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .stage { max-width: 260px; margin: 0 auto; }
+}
+.stage { position: relative; }
+canvas { display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 300 / 340; }
+
+.side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.cat {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; justify-content: space-between;
+}
+.cat-label { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--chalk-dim); }
+.cat-name { font-family: var(--font-display); font-size: 26px; color: var(--chalk-yellow); line-height: 1.1; }
+
+.side { container-type: inline-size; }
+.word {
+  /* one letter's share of the column, capped; the whole word always fits on one line */
+  --u: min(46px, calc(100cqw / var(--n, 8)));
+  display: flex; flex-wrap: nowrap; gap: calc(var(--u) * 0.18);
+  min-height: 64px; align-items: flex-end;
+}
+.slot {
+  flex: 0 1 calc(var(--u) * 0.82); min-width: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: min(40px, calc(var(--u) * 0.86));
+  line-height: 1.1;
+  border-bottom: 3px solid var(--chalk);
+  border-radius: 0 0 2px 40%;
+  height: 1.3em;
+}
+.slot.space { border-bottom: none; }
+.slot .ch { display: inline-block; }
+.slot .ch.pop { animation: chalkIn .35s ease-out; }
+.slot.missed { color: var(--chalk-pink); }
+@keyframes chalkIn {
+  from { opacity: 0; transform: translateY(-6px) rotate(-8deg) scale(1.3); filter: blur(2px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+
+.misses {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+  font-size: 15px; color: var(--chalk-dim);
+}
+.tally { display: inline-flex; gap: 3px; align-items: center; height: 24px; position: relative; }
+.tally i { display: block; width: 3px; height: 22px; background: var(--chalk); border-radius: 2px; opacity: .9; transform: rotate(4deg); }
+.tally i.empty { background: var(--chalk-dim); opacity: .25; }
+.tally .slash {
+  position: absolute; left: -4px; width: 32px; height: 3px; top: 10px;
+  background: var(--chalk); transform: rotate(-24deg); border-radius: 2px;
+}
+.wrong-letters { font-family: var(--font-display); font-size: 22px; color: var(--chalk-pink); letter-spacing: .12em; }
+
+.keys { display: flex; flex-direction: column; gap: 7px; }
+.row { display: flex; justify-content: center; gap: 6px; }
+.key {
+  flex: 1 1 0; max-width: 46px; min-width: 0;
+  aspect-ratio: 1 / 1.08;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 3.6vw, 24px);
+  color: var(--chalk);
+  background: rgba(255,255,255,0.03);
+  border: 2px solid var(--chalk-dim);
+  border-radius: 9px 7px 10px 6px;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: transform .12s, background .2s, border-color .2s, color .2s;
+}
+.key:hover:not(:disabled) { transform: translateY(-2px) rotate(-2deg); border-color: var(--chalk); background: rgba(255,255,255,0.07); }
+.key:focus-visible { outline: 3px solid var(--chalk-yellow); outline-offset: 2px; }
+.key:disabled { cursor: default; }
+.key.hit { color: var(--slate); background: var(--chalk-green); border-color: var(--chalk-green); }
+.key.miss { color: var(--chalk-dim); border-color: transparent; background: transparent; }
+.key.miss::after {
+  content: ""; position: absolute; left: 12%; right: 12%; top: 50%; height: 3px;
+  background: var(--chalk-pink); transform: rotate(-30deg); border-radius: 2px;
+}
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn {
+  font-family: var(--font-hand); font-weight: 700; font-size: 16px;
+  color: var(--chalk); background: transparent;
+  border: 2px solid var(--chalk-dim); border-radius: 22px 18px 24px 16px;
+  padding: 6px 16px; cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.btn:hover:not(:disabled) { border-color: var(--chalk); background: rgba(255,255,255,0.06); }
+.btn:focus-visible { outline: 3px solid var(--chalk-yellow); outline-offset: 2px; }
+.btn:disabled { opacity: .35; cursor: default; }
+.btn.primary { color: var(--slate); background: var(--chalk-yellow); border-color: var(--chalk-yellow); }
+.btn.primary:hover { background: #f8e39b; }
+
+select.btn { appearance: none; padding-right: 30px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--chalk) 50%), linear-gradient(135deg, var(--chalk) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 55%, calc(100% - 11px) 55%;
+  background-size: 5px 5px; background-repeat: no-repeat; }
+select.btn option { background: var(--slate); color: var(--chalk); }
+
+.verdict {
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+  padding: 12px 16px; border: 2px dashed var(--chalk-dim); border-radius: 12px 8px 14px 9px;
+  animation: chalkIn .4s ease-out;
+}
+.verdict h2 { font-family: var(--font-display); font-size: 34px; margin: 0; line-height: 1; }
+.verdict.win h2 { color: var(--chalk-green); }
+.verdict.lose h2 { color: var(--chalk-pink); }
+.verdict p { margin: 0; font-size: 16px; }
+.type-in {
+  /* kept focusable (not display:none) so iPad Safari will raise its keyboard for it */
+  position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; padding: 0; border: 0;
+  opacity: 0; font-size: 16px; pointer-events: none; caret-color: transparent;
+}
+#type-btn[aria-pressed="true"] { border-color: var(--chalk-yellow); color: var(--chalk-yellow); }
+.hint-line { font-size: 14px; color: var(--chalk-dim); margin: 0; }
+kbd { font-family: var(--font-hand); border: 1px solid var(--chalk-dim); border-radius: 4px; padding: 0 5px; font-size: 13px; }
+
+.dust { position: absolute; inset: 0; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <div class="board">
+    <header>
+      <h1>Hang<span>man</span></h1>
+      <div class="head-right">
+        <div class="stats" aria-label="Score">
+          <span>Saved<b id="s-win">0</b></span>
+          <span>Lost<b id="s-lose">0</b></span>
+          <span>Streak<b id="s-streak">0</b></span>
+        </div>
+        <button class="btn music" id="music" aria-pressed="false"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span id="music-label">Play music</span></button>
+      </div>
+    </header>
+
+    <div class="play">
+      <div class="stage">
+        <canvas id="gallows" width="300" height="340" aria-label="Gallows drawing"></canvas>
+        <canvas id="dust" class="dust" width="300" height="340" aria-hidden="true"></canvas>
+      </div>
+
+      <div class="side">
+        <div class="cat">
+          <div>
+            <div class="cat-label">Category</div>
+            <div class="cat-name" id="cat-name">Animals</div>
+          </div>
+          <label class="cat-label" for="cat-pick" hidden>Choose category</label>
+          <select id="cat-pick" class="btn" aria-label="Choose category"></select>
+        </div>
+
+        <div class="word" id="word" aria-live="polite"></div>
+
+        <div class="misses">
+          <span>Misses</span>
+          <span class="tally" id="tally"></span>
+          <span class="wrong-letters" id="wrong"></span>
+        </div>
+
+        <div id="verdict" hidden></div>
+
+        <div class="keys" id="keys"></div>
+
+        <div class="actions">
+          <button class="btn" id="hint">Reveal a letter (costs a miss)</button>
+          <button class="btn" id="new">New word</button>
+          <button class="btn" id="type-btn" aria-controls="type-in">Show keyboard</button>
+        </div>
+        <input id="type-in" class="type-in" type="text" aria-label="Type a letter to guess"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+        <p class="hint-line">Type letters on any keyboard or tap them above. On an iPad without a keyboard attached, tap <b>Show keyboard</b>. <kbd>Enter</kbd> starts the next word.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ledge"></div>
+</div>
+
+<script>
+(() => {
+const WORDS = {
+  "Animals": ["platypus", "armadillo", "chameleon", "flamingo", "hedgehog", "narwhal", "porcupine", "salamander", "wolverine", "jellyfish", "kangaroo", "octopus", "pelican", "raccoon", "walrus", "axolotl", "alligator", "antelope", "baboon", "badger", "beaver", "bison", "buffalo", "butterfly", "camel", "caterpillar", "cheetah", "chimpanzee", "chinchilla", "chipmunk", "cobra", "coyote", "crocodile", "dolphin", "donkey", "dragonfly", "eagle", "elephant", "falcon", "ferret", "gazelle", "gecko", "giraffe", "gorilla", "grasshopper", "hamster", "hippopotamus", "hummingbird", "hyena", "iguana", "jaguar", "koala", "ladybug", "lemur", "leopard", "lobster", "meerkat", "mongoose", "moose", "mosquito", "ostrich", "otter", "panther", "parrot", "peacock", "penguin", "pheasant", "piranha", "porpoise", "python", "rattlesnake", "reindeer", "rhinoceros", "scorpion", "seahorse", "squirrel", "starfish", "stingray", "tarantula", "tortoise", "toucan", "turtle", "vulture", "warthog", "weasel", "woodpecker", "yak", "zebra", "anteater", "bumblebee", "cockatoo", "cuttlefish", "manatee", "mandrill", "ocelot", "orangutan", "pangolin", "puffin", "quokka", "sloth", "tapir", "wombat"],
+  "Countries": ["argentina", "portugal", "indonesia", "madagascar", "switzerland", "mongolia", "ethiopia", "iceland", "morocco", "vietnam", "guatemala", "norway", "kazakhstan", "new zealand", "australia", "austria", "bangladesh", "belgium", "bolivia", "botswana", "brazil", "bulgaria", "cambodia", "cameroon", "canada", "chile", "colombia", "croatia", "cuba", "cyprus", "denmark", "ecuador", "egypt", "estonia", "finland", "france", "germany", "ghana", "greece", "honduras", "hungary", "india", "ireland", "israel", "italy", "jamaica", "japan", "jordan", "kenya", "latvia", "lebanon", "lithuania", "luxembourg", "malaysia", "mexico", "mozambique", "namibia", "nepal", "netherlands", "nicaragua", "nigeria", "pakistan", "panama", "paraguay", "peru", "philippines", "poland", "romania", "rwanda", "senegal", "singapore", "slovakia", "slovenia", "south africa", "spain", "sri lanka", "sweden", "tanzania", "thailand", "tunisia", "turkey", "uganda", "ukraine", "uruguay", "venezuela", "zambia", "zimbabwe"],
+  "Food": ["guacamole", "croissant", "lasagna", "dumpling", "pretzel", "burrito", "risotto", "pancake", "tiramisu", "falafel", "ratatouille", "cheesecake", "macaroni", "sourdough", "avocado", "bagel", "baguette", "biscuit", "broccoli", "brownie", "bruschetta", "burger", "cannoli", "casserole", "cauliflower", "cinnamon", "coleslaw", "cupcake", "curry", "doughnut", "eggplant", "enchilada", "gingerbread", "gnocchi", "granola", "hummus", "kebab", "lemonade", "mango", "meatball", "muffin", "mushroom", "nachos", "noodles", "omelette", "paella", "pasta", "pastrami", "pepperoni", "pineapple", "pistachio", "popcorn", "porridge", "pumpkin", "quesadilla", "quiche", "ramen", "ravioli", "sandwich", "sausage", "spaghetti", "strawberry", "sushi", "taco", "tortilla", "waffle", "watermelon", "zucchini", "blueberry", "cornbread", "fajita", "jambalaya", "marshmallow", "meringue", "pomegranate", "shortbread", "souffle", "tamale", "toffee"],
+  "Instruments": ["saxophone", "harmonica", "accordion", "trombone", "xylophone", "clarinet", "ukulele", "bagpipes", "tambourine", "harpsichord", "cello", "banjo", "didgeridoo", "glockenspiel", "bassoon", "bongos", "castanets", "cymbals", "drums", "flute", "guitar", "harp", "kazoo", "keyboard", "mandolin", "maracas", "marimba", "oboe", "ocarina", "organ", "piano", "piccolo", "recorder", "sitar", "synthesizer", "timpani", "triangle", "trumpet", "tuba", "viola", "violin", "bugle", "cornet", "dulcimer", "euphonium", "gong", "lute", "lyre", "panpipes", "sousaphone", "tabla", "theremin", "zither", "steel drum", "double bass", "french horn"],
+  "Space": ["nebula", "asteroid", "galaxy", "satellite", "telescope", "supernova", "jupiter", "constellation", "comet", "eclipse", "quasar", "black hole", "meteorite", "astronaut", "mercury", "venus", "earth", "mars", "saturn", "uranus", "neptune", "pluto", "moon", "sunspot", "orbit", "gravity", "rocket", "spaceship", "cosmonaut", "planetarium", "observatory", "universe", "milky way", "andromeda", "solar flare", "light year", "exoplanet", "pulsar", "wormhole", "spacewalk", "launchpad", "lunar", "module", "crater", "equinox", "solstice", "aurora", "stardust", "starlight", "meteor", "shooting star", "big bang", "dwarf planet", "red giant", "space station"],
+  "Jobs": ["carpenter", "astronomer", "librarian", "plumber", "architect", "firefighter", "veterinarian", "blacksmith", "locksmith", "choreographer", "electrician", "zookeeper", "accountant", "actor", "astronaut", "baker", "barber", "butcher", "cashier", "chef", "dentist", "detective", "doctor", "engineer", "farmer", "florist", "gardener", "geologist", "hairdresser", "journalist", "judge", "lawyer", "lifeguard", "mechanic", "musician", "nurse", "optician", "painter", "paramedic", "pharmacist", "photographer", "pilot", "poet", "police officer", "professor", "programmer", "receptionist", "sailor", "scientist", "sculptor", "surgeon", "tailor", "teacher", "translator", "waiter", "welder", "beekeeper", "cartographer", "lumberjack"],
+  "Sports": ["basketball", "football", "baseball", "volleyball", "badminton", "tennis", "cricket", "hockey", "rugby", "golf", "archery", "fencing", "gymnastics", "skateboarding", "snowboarding", "surfing", "swimming", "wrestling", "boxing", "karate", "judo", "taekwondo", "marathon", "triathlon", "cycling", "rowing", "sailing", "canoeing", "kayaking", "climbing", "bowling", "billiards", "darts", "curling", "lacrosse", "softball", "handball", "polo", "water polo", "table tennis", "ski jumping", "figure skating", "high jump", "long jump", "pole vault", "javelin", "hurdles", "decathlon", "skydiving", "windsurfing", "dodgeball"],
+  "Nature": ["waterfall", "volcano", "glacier", "canyon", "meadow", "rainforest", "desert", "mountain", "valley", "river", "island", "lagoon", "swamp", "marsh", "prairie", "tundra", "savanna", "cliff", "cave", "geyser", "iceberg", "avalanche", "earthquake", "tornado", "hurricane", "rainbow", "thunderstorm", "lightning", "blizzard", "drizzle", "fog", "sunrise", "sunset", "moonlight", "wildfire", "coral", "reef", "pebble", "boulder", "sandstone", "crystal", "quicksand", "oasis", "delta", "estuary", "fjord", "plateau", "hillside", "riverbank", "woodland", "orchard", "pine cone", "acorn", "mushroom", "seashell", "driftwood"],
+  "Around the House": ["refrigerator", "microwave", "toaster", "kettle", "blender", "dishwasher", "saucepan", "spatula", "colander", "teapot", "cupboard", "drawer", "wardrobe", "bookshelf", "armchair", "sofa", "cushion", "blanket", "pillow", "mattress", "curtain", "carpet", "doormat", "lampshade", "chandelier", "fireplace", "staircase", "bathtub", "shower", "toothbrush", "toothpaste", "hairbrush", "mirror", "wastebasket", "vacuum", "broom", "mop", "bucket", "ironing board", "laundry", "clothespin", "alarm clock", "thermostat", "radiator", "doorbell", "mailbox", "chimney", "attic", "basement", "garage", "greenhouse", "windowsill", "houseplant", "candlestick"],
+  "Clothing": ["sweater", "cardigan", "jacket", "raincoat", "overcoat", "hoodie", "tuxedo", "waistcoat", "blouse", "jeans", "trousers", "shorts", "skirt", "dress", "pajamas", "bathrobe", "slippers", "sneakers", "sandals", "boots", "loafers", "high heels", "flip flops", "scarf", "mittens", "gloves", "beanie", "beret", "bowler hat", "sombrero", "bandana", "necktie", "bowtie", "suspenders", "belt", "buckle", "pocket", "zipper", "button", "collar", "sleeve", "apron", "overalls", "kimono", "poncho", "sari", "leggings", "swimsuit", "wetsuit"],
+  "Vehicles": ["bicycle", "motorcycle", "scooter", "skateboard", "tricycle", "unicycle", "automobile", "limousine", "minivan", "pickup truck", "tractor", "bulldozer", "excavator", "forklift", "ambulance", "fire engine", "police car", "taxi", "bus", "trolley", "tram", "subway", "locomotive", "monorail", "helicopter", "airplane", "jumbo jet", "glider", "hot air balloon", "blimp", "rocket", "submarine", "sailboat", "canoe", "kayak", "gondola", "ferry", "yacht", "tugboat", "catamaran", "hovercraft", "snowmobile", "sled", "chariot", "carriage", "rickshaw", "segway"],
+  "Science": ["molecule", "electron", "neutron", "proton", "nucleus", "atom", "magnet", "gravity", "friction", "velocity", "momentum", "energy", "oxygen", "hydrogen", "carbon", "nitrogen", "helium", "photosynthesis", "evolution", "fossil", "dinosaur", "bacteria", "virus", "vaccine", "microscope", "laboratory", "experiment", "hypothesis", "chemistry", "physics", "biology", "geology", "botany", "ecosystem", "habitat", "climate", "genome", "chromosome", "enzyme", "protein", "crystal", "acid", "circuit", "battery", "voltage", "thermometer", "barometer", "telescope", "prism", "spectrum", "radiation", "catalyst", "element", "compound"],
+  "Hobbies": ["knitting", "crochet", "embroidery", "quilting", "pottery", "painting", "sculpture", "origami", "calligraphy", "photography", "gardening", "birdwatching", "fishing", "camping", "hiking", "stargazing", "baking", "cooking", "juggling", "magic tricks", "puzzles", "crosswords", "chess", "checkers", "dominoes", "scrapbooking", "woodworking", "beekeeping", "karaoke", "dancing", "singing", "reading", "writing", "blogging", "journaling", "skating", "cycling", "geocaching", "kite flying", "model trains", "collecting", "stamps", "coins", "board games", "video games"],
+  "Weather": ["sunshine", "cloudburst", "drizzle", "downpour", "thunder", "lightning", "hailstorm", "snowflake", "snowstorm", "blizzard", "sleet", "frost", "dew", "fog", "mist", "humidity", "breeze", "gale", "gust", "whirlwind", "tornado", "hurricane", "typhoon", "cyclone", "monsoon", "heatwave", "drought", "rainbow", "forecast", "temperature", "barometer", "overcast", "cloudy", "sunny", "windy", "stormy", "freezing", "icicle", "puddle", "umbrella", "raincoat"]
+};
+const MAX_MISSES = 6;
+const ROWS = ["qwertyuiop","asdfghjkl","zxcvbnm"];
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const $ = id => document.getElementById(id);
+const els = { word: $("word"), keys: $("keys"), tally: $("tally"), wrong: $("wrong"), verdict: $("verdict"),
+  cat: $("cat-name"), pick: $("cat-pick"), hint: $("hint"), next: $("new") };
+
+/* ---------- state ---------- */
+let S;
+let stats = { win: 0, lose: 0, streak: 0 };
+try { const s = JSON.parse(localStorage.getItem("hangman-stats") || "null"); if (s) stats = s; } catch (e) {}
+function saveStats() { try { localStorage.setItem("hangman-stats", JSON.stringify(stats)); } catch (e) {} }
+
+function pickWord(choice) {
+  const cats = Object.keys(WORDS);
+  const cat = choice && choice !== "Any" ? choice : cats[Math.floor(Math.random() * cats.length)];
+  const list = WORDS[cat];
+  let w;
+  do { w = list[Math.floor(Math.random() * list.length)]; } while (S && w === S.word && list.length > 1);
+  return { cat, word: w };
+}
+function newRound() {
+  const { cat, word } = pickWord(els.pick.value);
+  S = { cat, word, guessed: [], misses: 0, over: null, choice: els.pick.value };
+  resetDrawing();
+  render(true);
+}
+const letters = () => [...new Set(S.word.replace(/ /g, ""))];
+const solved = () => letters().every(l => S.guessed.includes(l));
+
+function guess(l) {
+  if (!S || S.over || S.guessed.includes(l)) return;
+  Music.click();
+  S.guessed.push(l);
+  if (!S.word.includes(l)) { S.misses++; scheduleParts(); }
+  checkEnd();
+  render(false, l);
+}
+function hint() {
+  if (S.over || S.misses >= MAX_MISSES - 1) return;
+  const left = letters().filter(l => !S.guessed.includes(l));
+  if (!left.length) return;
+  const l = left[Math.floor(Math.random() * left.length)];
+  S.guessed.push(l);
+  S.misses++;
+  scheduleParts();
+  checkEnd();
+  render(false, l);
+}
+function checkEnd() {
+  if (solved()) { S.over = "win"; stats.win++; stats.streak++; saveStats(); celebrate(); if (S.misses === 0) Music.jackpot(); }
+  else if (S.misses >= MAX_MISSES) { S.over = "lose"; stats.lose++; stats.streak = 0; saveStats(); Music.sadTrombone(); }
+  if (S.over) scheduleParts();
+}
+
+/* ---------- DOM render ---------- */
+function buildKeys() {
+  els.keys.innerHTML = "";
+  ROWS.forEach(r => {
+    const row = document.createElement("div"); row.className = "row";
+    [...r].forEach(ch => {
+      const b = document.createElement("button");
+      b.className = "key"; b.textContent = ch.toUpperCase(); b.dataset.k = ch; b.id = "key-" + ch;
+      b.setAttribute("aria-label", "Guess " + ch.toUpperCase());
+      b.addEventListener("click", () => guess(ch));
+      row.appendChild(b);
+    });
+    els.keys.appendChild(row);
+  });
+}
+function render(fresh, justGuessed) {
+  els.cat.textContent = S.cat;
+  // word
+  els.word.innerHTML = "";
+  els.word.style.setProperty("--n", S.word.length);
+  [...S.word].forEach(ch => {
+    const s = document.createElement("span");
+    if (ch === " ") { s.className = "slot space"; els.word.appendChild(s); return; }
+    s.className = "slot";
+    const shown = S.guessed.includes(ch);
+    if (shown || S.over === "lose") {
+      const c = document.createElement("span");
+      c.className = "ch" + ((ch === justGuessed || (!shown && S.over)) ? " pop" : "");
+      c.textContent = ch.toUpperCase();
+      s.appendChild(c);
+      if (!shown) s.classList.add("missed");
+    }
+    els.word.appendChild(s);
+  });
+  els.word.setAttribute("aria-label", [...S.word].map(c => c === " " ? "space" : (S.guessed.includes(c) ? c : "blank")).join(" "));
+  // keys
+  els.keys.querySelectorAll(".key").forEach(b => {
+    const k = b.dataset.k, g = S.guessed.includes(k);
+    b.classList.toggle("hit", g && S.word.includes(k));
+    b.classList.toggle("miss", g && !S.word.includes(k));
+    b.disabled = g || !!S.over;
+  });
+  // tally: chalk tally marks, 5 + 1
+  els.tally.innerHTML = "";
+  for (let i = 0; i < MAX_MISSES; i++) {
+    const m = document.createElement("i");
+    if (i >= S.misses) m.className = "empty";
+    els.tally.appendChild(m);
+    if (i === 4 && S.misses >= 5) {
+      const sl = document.createElement("span"); sl.className = "slash"; els.tally.appendChild(sl);
+    }
+  }
+  els.tally.setAttribute("aria-label", `${S.misses} of ${MAX_MISSES} misses`);
+  els.wrong.textContent = S.guessed.filter(l => !S.word.includes(l)).join(" ").toUpperCase();
+  // verdict
+  if (S.over) {
+    const win = S.over === "win";
+    els.verdict.className = "verdict " + S.over;
+    els.verdict.innerHTML = `<h2>${win ? "Saved!" : "Hanged."}</h2>
+      <p>${win ? `You got <b>${S.word.toUpperCase()}</b> with ${MAX_MISSES - S.misses} miss${MAX_MISSES - S.misses === 1 ? "" : "es"} to spare.`
+               : `The word was <b>${S.word.toUpperCase()}</b>.`}</p>
+      <button class="btn primary" id="again">Next word</button>`;
+    els.verdict.hidden = false;
+    $("again").addEventListener("click", newRound);
+    if (!fresh && document.activeElement !== typeIn) $("again").focus({ preventScroll: true });
+  } else {
+    els.verdict.hidden = true;
+  }
+  els.hint.disabled = !!S.over || S.misses >= MAX_MISSES - 1;
+  $("s-win").textContent = stats.win;
+  $("s-lose").textContent = stats.lose;
+  $("s-streak").textContent = stats.streak;
+}
+
+/* ---------- chalk drawing ---------- */
+const cv = $("gallows"), ctx = cv.getContext("2d");
+const W = 300, H = 340;
+function fitCanvas(c, cx) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  c.width = W * dpr; c.height = H * dpr;
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+fitCanvas(cv, ctx);
+
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const line = (x1, y1, x2, y2) => { const n = Math.max(8, Math.hypot(x2 - x1, y2 - y1) / 5 | 0); return Array.from({ length: n + 1 }, (_, i) => [x1 + (x2 - x1) * i / n, y1 + (y2 - y1) * i / n]); };
+const arc = (cx, cy, r, a0, a1) => { const n = Math.max(10, Math.abs(a1 - a0) * r / 5 | 0); return Array.from({ length: n + 1 }, (_, i) => { const a = a0 + (a1 - a0) * i / n; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; }); };
+
+const CHALK = "236,231,218", PINK = "243,154,146", GREEN = "174,219,163";
+const P = {
+  base:  { pts: [line(22, 322, 210, 320)], w: 5 },
+  pole:  { pts: [line(62, 321, 60, 28)], w: 5 },
+  beam:  { pts: [line(52, 30, 196, 32)], w: 5 },
+  brace: { pts: [line(61, 82, 112, 31)], w: 4 },
+  rope:  { pts: [line(190, 32, 191, 70)], w: 3 },
+  head:  { pts: [arc(191, 98, 28, -Math.PI / 2, Math.PI * 1.55)], w: 3.5 },
+  body:  { pts: [line(191, 126, 190, 214)], w: 3.5 },
+  armL:  { pts: [line(190, 148, 154, 190)], w: 3.5 },
+  armR:  { pts: [line(190, 148, 227, 188)], w: 3.5 },
+  legL:  { pts: [line(190, 213, 160, 276)], w: 3.5 },
+  legR:  { pts: [line(190, 213, 221, 275)], w: 3.5 },
+  dead:  { pts: [line(176, 88, 186, 98), line(186, 88, 176, 98), line(196, 88, 206, 98), line(206, 88, 196, 98), arc(191, 120, 9, -Math.PI * 0.85, -Math.PI * 0.15)], w: 2.5, color: PINK },
+  happy: { pts: [arc(181, 93, 2.5, 0, Math.PI * 2), arc(201, 93, 2.5, 0, Math.PI * 2), arc(191, 104, 11, Math.PI * 0.15, Math.PI * 0.85)], w: 2.5, color: GREEN },
+};
+const GALLOWS = ["base", "pole", "beam", "brace", "rope"];
+const BODY = ["head", "body", "armL", "armR", "legL", "legR"];
+Object.keys(P).forEach((k, i) => P[k].seed = 1000 + i * 97);
+
+let progress = {};   // part -> 0..1
+let queue = [];      // parts waiting to animate
+function resetDrawing() {
+  progress = {}; queue = [];
+  scheduleParts();
+}
+function wantedParts() {
+  const want = [...GALLOWS, ...BODY.slice(0, S.misses)];
+  if (S.over === "lose") want.push("dead");
+  if (S.over === "win" && S.misses >= 1) want.push("happy");
+  return want;
+}
+function scheduleParts() {
+  wantedParts().forEach(k => { if (!(k in progress) && !queue.includes(k)) queue.push(k); });
+  kick();
+}
+
+function drawPart(k, t) {
+  const p = P[k]; if (t <= 0) return;
+  const r = rng(p.seed);
+  const col = p.color || CHALK;
+  const total = p.pts.reduce((a, s) => a + s.length, 0);
+  let budget = Math.ceil(total * t);
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  const strokes = [];
+  for (const seg of p.pts) {
+    if (budget <= 1) break;
+    const n = Math.min(seg.length, budget); budget -= n;
+    strokes.push(seg.slice(0, n));
+  }
+  // three passes of grainy chalk, each slightly offset
+  [[p.w, 0.55], [p.w * 0.6, 0.6], [p.w * 0.35, 0.8]].forEach(([w, a], pass) => {
+    const ox = (r() - 0.5) * 1.6, oy = (r() - 0.5) * 1.6;
+    ctx.strokeStyle = `rgba(${col},${a})`;
+    ctx.lineWidth = w;
+    for (const s of strokes) {
+      ctx.beginPath();
+      s.forEach(([x, y], i) => {
+        const jx = x + ox + (r() - 0.5) * 1.1, jy = y + oy + (r() - 0.5) * 1.1;
+        i ? ctx.lineTo(jx, jy) : ctx.moveTo(jx, jy);
+      });
+      ctx.stroke();
+    }
+  });
+  // knock out specks so it reads as chalk on a rough surface
+  ctx.globalCompositeOperation = "destination-out";
+  for (const s of strokes) for (const [x, y] of s) {
+    for (let j = 0; j < 3; j++) {
+      ctx.fillStyle = `rgba(0,0,0,${0.35 + r() * 0.5})`;
+      ctx.fillRect(x + (r() - 0.5) * p.w * 1.6, y + (r() - 0.5) * p.w * 1.6, 0.6 + r() * 1.3, 0.6 + r() * 1.3);
+    }
+  }
+  ctx.globalCompositeOperation = "source-over";
+  // dust at the stroke tip while drawing
+  if (t < 1 && strokes.length) {
+    const last = strokes[strokes.length - 1].at(-1);
+    puff(last[0], last[1], 1);
+  }
+}
+
+let raf = null, lastTs = 0;
+function kick() { if (!raf) { lastTs = performance.now(); raf = requestAnimationFrame(frame); } }
+function frame(ts) {
+  const dt = Math.min(50, ts - lastTs); lastTs = ts;
+  if (queue.length) {
+    const k = queue[0];
+    if (!(k in progress)) progress[k] = 0;
+    const speed = GALLOWS.includes(k) ? 1 / 260 : 1 / 420;
+    progress[k] = reduceMotion ? 1 : Math.min(1, progress[k] + dt * speed);
+    if (progress[k] >= 1) queue.shift();
+  }
+  ctx.clearRect(0, 0, W, H);
+  Object.keys(progress).forEach(k => drawPart(k, progress[k]));
+  const dustAlive = stepDust(dt);
+  raf = (queue.length || dustAlive) ? requestAnimationFrame(frame) : null;
+}
+
+/* ---------- chalk dust particles ---------- */
+const dc = $("dust"), dctx = dc.getContext("2d");
+fitCanvas(dc, dctx);
+let motes = [];
+function puff(x, y, n, colors) {
+  if (reduceMotion) return;
+  for (let i = 0; i < n; i++) motes.push({ x, y, vx: (Math.random() - 0.5) * 0.04, vy: Math.random() * 0.03 + 0.005,
+    life: 1, size: Math.random() * 1.6 + 0.5, col: colors ? colors[i % colors.length] : CHALK });
+}
+function stepDust(dt) {
+  dctx.clearRect(0, 0, W, H);
+  motes = motes.filter(m => (m.life -= dt / 900) > 0);
+  for (const m of motes) {
+    m.x += m.vx * dt; m.y += m.vy * dt; m.vy += 0.00004 * dt;
+    dctx.fillStyle = `rgba(${m.col},${m.life * 0.7})`;
+    dctx.fillRect(m.x, m.y, m.size, m.size);
+  }
+  return motes.length > 0;
+}
+function celebrate() {
+  if (reduceMotion) return;
+  for (let i = 0; i < 90; i++) {
+    const a = Math.random() * Math.PI * 2, sp = Math.random() * 0.22 + 0.05;
+    motes.push({ x: 191, y: 120, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.08, life: 1.4,
+      size: Math.random() * 3 + 1.5, col: [CHALK, GREEN, "243,215,122", PINK][i % 4] });
+  }
+  kick();
+}
+
+/* ---------- wiring ---------- */
+els.pick.innerHTML = ["Any", ...Object.keys(WORDS)].map(c => `<option value="${c}">${c === "Any" ? "Any category" : c}</option>`).join("");
+els.pick.addEventListener("change", newRound);
+els.next.addEventListener("click", newRound);
+els.hint.addEventListener("click", hint);
+// on-screen keyboard: a hidden text field collects whatever is typed and turns it into guesses
+const typeIn = $("type-in"), typeBtn = $("type-btn");
+typeBtn.addEventListener("click", () => {
+  if (document.activeElement === typeIn) typeIn.blur();
+  else typeIn.focus({ preventScroll: true });
+});
+typeIn.addEventListener("focus", () => { typeBtn.textContent = "Hide keyboard"; typeBtn.setAttribute("aria-pressed", "true"); });
+typeIn.addEventListener("blur", () => { typeBtn.textContent = "Show keyboard"; typeBtn.setAttribute("aria-pressed", "false"); });
+typeIn.addEventListener("input", () => {
+  const typed = typeIn.value.toLowerCase().replace(/[^a-z]/g, "");
+  typeIn.value = "";
+  for (const ch of typed) guess(ch);
+});
+typeIn.addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); if (S && S.over) newRound(); }
+});
+
+addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.tagName === "SELECT" || e.target === typeIn) return;
+  if (/^[a-z]$/i.test(e.key)) { guess(e.key.toLowerCase()); }
+  else if (e.key === "Enter" && S && S.over && document.activeElement?.id !== "again") { e.preventDefault(); newRound(); }
+});
+/* ---------- soft looping music (synthesised, no files) ---------- */
+const Music = (() => {
+  let ac, master, verb, timer, nextTime = 0, step = 0, on = false;
+  const EIGHTH = 60 / 66 / 2;                 // 66 bpm, eighth notes
+  const CHORDS = [                            // Cmaj7, Am7, Fmaj7, G6 — two bars each
+    [48, 55, 64, 71], [45, 52, 60, 67], [41, 48, 57, 64], [43, 50, 59, 64]
+  ];
+  const ARP = [0, 2, 1, 3, 2, -1, 1, -1, 3, 1, 2, 0, 1, -1, -1, -1];
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+
+  // iPhone/iPad: route Web Audio as media playback so the Silent setting doesn't mute it
+  let keepAlive;
+  function iosUnlock() {
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+    if (!keepAlive) {
+      // older iOS without audioSession: a looping silent <audio> track switches the page to the playback category
+      const rate = 8000, n = rate / 2, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+      const w = (o, str) => [...str].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+      w(0, "RIFF"); v.setUint32(4, 36 + n, true); w(8, "WAVEfmt "); v.setUint32(16, 16, true);
+      v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate, true);
+      v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, "data"); v.setUint32(40, n, true);
+      for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+      keepAlive = new Audio(URL.createObjectURL(new Blob([buf], { type: "audio/wav" })));
+      keepAlive.loop = true;
+      keepAlive.setAttribute("playsinline", "");
+    }
+    keepAlive.play().catch(() => {});
+    // a one-sample buffer started inside the tap unlocks the context on Safari
+    const b = ac.createBufferSource(); b.buffer = ac.createBuffer(1, 1, 22050);
+    b.connect(ac.destination); b.start(0);
+  }
+  function init() {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain(); master.gain.value = 0;
+    master.connect(ac.destination);
+    // generated hall reverb
+    verb = ac.createConvolver();
+    const len = ac.sampleRate * 3.2, ir = ac.createBuffer(2, len, ac.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const d = ir.getChannelData(c);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    }
+    verb.buffer = ir;
+    const wet = ac.createGain(); wet.gain.value = 0.55;
+    verb.connect(wet); wet.connect(master);
+  }
+  function out(node, dry) {
+    const g = ac.createGain(); g.gain.value = dry;
+    node.connect(g); g.connect(master); node.connect(verb);
+  }
+  function pad(notes, t, dur) {
+    const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 800; lp.Q.value = 0.3;
+    const env = ac.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.045, t + 1.8);
+    env.gain.setValueAtTime(0.045, t + dur - 0.4);
+    env.gain.linearRampToValueAtTime(0, t + dur + 1.6);
+    lp.connect(env); out(env, 0.6);
+    notes.forEach(n => [-6, 6].forEach(cents => {
+      const o = ac.createOscillator(); o.type = "triangle";
+      o.frequency.value = mtof(n); o.detune.value = cents;
+      o.connect(lp); o.start(t); o.stop(t + dur + 1.8);
+    }));
+  }
+  function bell(n, t, vel) {
+    const env = ac.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(vel, t + 0.01);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+    out(env, 0.5);
+    [[1, 1], [2.01, 0.18], [3.98, 0.05]].forEach(([mult, amp]) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = "sine"; o.frequency.value = mtof(n) * mult; g.gain.value = amp;
+      o.connect(g); g.connect(env); o.start(t); o.stop(t + 2.3);
+    });
+  }
+  function schedule() {
+    while (nextTime < ac.currentTime + 0.3) {
+      const chord = CHORDS[Math.floor(step / 16)], s = step % 16;
+      if (s === 0) { pad(chord, nextTime, 16 * EIGHTH); bell(chord[0] - 12, nextTime, 0.05); }
+      const i = ARP[s];
+      if (i >= 0) bell(chord[i] + 12, nextTime + (Math.random() - 0.5) * 0.015, 0.035 + Math.random() * 0.02);
+      nextTime += EIGHTH;
+      step = (step + 1) % (16 * CHORDS.length);
+    }
+  }
+  function play() {
+    if (!ac) init();
+    iosUnlock();
+    ac.resume();
+    on = true;
+    master.gain.cancelScheduledValues(ac.currentTime);
+    master.gain.setTargetAtTime(0.6, ac.currentTime, 0.8);
+    if (!timer) { nextTime = ac.currentTime + 0.1; timer = setInterval(schedule, 60); schedule(); }
+  }
+  function pause() {
+    on = false;
+    if (!ac) return;
+    master.gain.cancelScheduledValues(ac.currentTime);
+    master.gain.setTargetAtTime(0, ac.currentTime, 0.25);
+    clearInterval(timer); timer = null;
+  }
+  // the context stays running after the music pauses so letter clicks still sound
+  let unlocked = false, noise;
+  function ensure() {
+    if (!ac) init();
+    if (!unlocked) { iosUnlock(); unlocked = true; }
+    if (ac.state !== "running") ac.resume();
+  }
+  // chalk tapping the slate: a short band-passed noise burst over a falling tick
+  function click() {
+    try {
+      ensure();
+      const t = ac.currentTime + 0.005;
+      if (!noise) {
+        noise = ac.createBuffer(1, ac.sampleRate * 0.06, ac.sampleRate);
+        const d = noise.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain();
+      src.buffer = noise;
+      bp.type = "bandpass"; bp.frequency.value = 2000 + Math.random() * 800; bp.Q.value = 1.2;
+      g.gain.setValueAtTime(0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+      src.connect(bp); bp.connect(g); g.connect(ac.destination);
+      src.start(t); src.stop(t + 0.06);
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(1500, t); o.frequency.exponentialRampToValueAtTime(450, t + 0.03);
+      og.gain.setValueAtTime(0.12, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      o.connect(og); og.connect(ac.destination);
+      o.start(t); o.stop(t + 0.05);
+    } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (!ac) return;
+    if (document.hidden) ac.suspend();
+    else { ac.resume(); keepAlive && keepAlive.play().catch(() => {}); }
+  });
+  // flawless solve: slot-machine payout, a bell fanfare then a cascade of clinking coins
+  function jackpot() {
+    try {
+      ensure();
+      const t0 = ac.currentTime + 0.05;
+      const bus = ac.createGain(); bus.gain.value = 0.55; bus.connect(ac.destination);
+      if (on) {   // duck the music under the payout
+        master.gain.cancelScheduledValues(t0);
+        master.gain.setTargetAtTime(0.15, t0, 0.1);
+        master.gain.setTargetAtTime(0.6, t0 + 3.2, 0.6);
+      }
+      [84, 88, 91, 96, 91, 96].forEach((n, i) => {
+        const t = t0 + i * 0.09, o = ac.createOscillator(), g = ac.createGain();
+        o.type = "square"; o.frequency.value = mtof(n);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.07, t + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.001, t + (i === 5 ? 0.6 : 0.12));
+        o.connect(g); g.connect(bus); o.start(t); o.stop(t + 0.65);
+      });
+      // payout bell: ching-ching-ching in a steady beat, alternating pitch, last one rings out
+      for (let i = 0; i < 14; i++) ching(t0 + 0.6 + i * 0.15, bus, i % 2 ? 1.12 : 1, i === 13 ? 1.6 : 0.55);
+      // coins spilling into the tray underneath
+      let t = t0 + 0.6;
+      for (let i = 0; i < 30; i++) { coin(t, bus); t += 0.04 + Math.random() * 0.06; }
+    } catch (e) {}
+  }
+  function ching(t, bus, pitch, ring) {
+    // "ch": a bright burst of hiss
+    const src = ac.createBufferSource(), hp = ac.createBiquadFilter(), ng = ac.createGain();
+    if (!noise) {
+      noise = ac.createBuffer(1, ac.sampleRate * 0.06, ac.sampleRate);
+      const d = noise.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    src.buffer = noise; hp.type = "highpass"; hp.frequency.value = 5000;
+    ng.gain.setValueAtTime(0.35, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    src.connect(hp); hp.connect(ng); ng.connect(bus); src.start(t); src.stop(t + 0.06);
+    // "ing": a ringing cash-register bell
+    const f = 1900 * pitch, g = ac.createGain();
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.3, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.001, t + ring);
+    g.connect(bus); g.connect(verb);
+    [[1, 0.5], [1.5, 0.35], [2.0, 0.25], [3.01, 0.15], [4.2, 0.08]].forEach(([m, a]) => {
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.frequency.value = f * m; og.gain.value = a;
+      o.connect(og); og.connect(g); o.start(t); o.stop(t + ring + 0.05);
+    });
+  }
+  function coin(t, bus) {
+    const f = 2600 + Math.random() * 1600, dur = 0.18 + Math.random() * 0.2;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.1, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    let dest = bus;
+    if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = Math.random() * 1.4 - 0.7; p.connect(bus); dest = p; }
+    g.connect(dest);
+    [[1, 0.5], [2.76, 0.3], [5.4, 0.18]].forEach(([m, a]) => {   // inharmonic partials read as metal
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.frequency.value = f * m; og.gain.value = a;
+      o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + 0.02);
+    });
+  }
+  // loss: the classic "wah wah wah waaah" — four falling semitones, the last one wobbling and drooping
+  function sadTrombone() {
+    try {
+      ensure();
+      const t0 = ac.currentTime + 0.15;
+      const bus = ac.createGain(); bus.gain.value = 0.5; bus.connect(ac.destination);
+      if (on) {
+        master.gain.cancelScheduledValues(t0);
+        master.gain.setTargetAtTime(0.12, t0 - 0.1, 0.1);
+        master.gain.setTargetAtTime(0.6, t0 + 3.4, 0.6);
+      }
+      const notes = [[55, 0.5], [54, 0.5], [53, 0.5], [52, 1.9]];
+      let t = t0;
+      notes.forEach(([n, dur], i) => {
+        const last = i === notes.length - 1, f = mtof(n);
+        const o = ac.createOscillator(), o2 = ac.createOscillator();
+        o.type = "sawtooth"; o2.type = "square"; o2.detune.value = -1200;
+        // each note scoops down into pitch like a slide
+        [o, o2].forEach(x => {
+          x.frequency.setValueAtTime(f * 1.03, t);
+          x.frequency.exponentialRampToValueAtTime(f, t + 0.08);
+          if (last) x.frequency.exponentialRampToValueAtTime(f * 0.94, t + dur);
+        });
+        if (last) {   // growing vibrato on the final note
+          const lfo = ac.createOscillator(), depth = ac.createGain();
+          lfo.frequency.value = 5.5;
+          depth.gain.setValueAtTime(0, t + 0.2); depth.gain.linearRampToValueAtTime(f * 0.03, t + dur);
+          lfo.connect(depth); depth.connect(o.frequency); depth.connect(o2.frequency);
+          lfo.start(t); lfo.stop(t + dur + 0.1);
+        }
+        // the "wah": a filter that opens and closes like a plunger mute
+        const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 4;
+        lp.frequency.setValueAtTime(350, t);
+        lp.frequency.linearRampToValueAtTime(1500, t + 0.12);
+        lp.frequency.linearRampToValueAtTime(last ? 700 : 500, t + dur * 0.85);
+        const g = ac.createGain(), g2 = ac.createGain(); g2.gain.value = 0.35;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.16, t + 0.05);
+        g.gain.setValueAtTime(0.16, t + dur * 0.75);
+        g.gain.linearRampToValueAtTime(0, t + dur);
+        o.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(bus); g.connect(verb);
+        o.start(t); o2.start(t); o.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+        t += dur + (last ? 0 : 0.06);
+      });
+    } catch (e) {}
+  }
+  return { play, pause, click, jackpot, sadTrombone, get on() { return on; } };
+})();
+
+const musicBtn = $("music");
+function setMusic(play) {
+  try { play ? Music.play() : Music.pause(); } catch (e) { play = false; }
+  musicBtn.setAttribute("aria-pressed", String(play));
+  $("music-label").textContent = play ? "Pause music" : "Play music";
+  try { localStorage.setItem("hangman-music", play ? "1" : "0"); } catch (e) {}
+}
+musicBtn.addEventListener("click", () => setMusic(!Music.on));
+// browsers only allow sound after an interaction, so a remembered "on" resumes at the first tap or key
+let musicPref = false;
+try { musicPref = localStorage.getItem("hangman-music") === "1"; } catch (e) {}
+if (musicPref) {
+  const resume = e => {
+    ["click", "touchend", "keydown"].forEach(t => removeEventListener(t, resume, true));
+    if (e.target !== musicBtn && !Music.on) setMusic(true);
+  };
+  ["click", "touchend", "keydown"].forEach(t => addEventListener(t, resume, true));
+}
+
+buildKeys();
+
+window.claude?.hot?.snapshot?.(() => ({ S, choice: els.pick.value }));
+
+function start(data) {
+  if (data && data.S && data.S.word) {
+    S = data.S;
+    els.pick.value = data.choice || "Any";
+    progress = {}; queue = [];
+    wantedParts().forEach(k => queue.push(k));
+    kick();
+    render(true);
+  } else {
+    els.pick.value = "Any";
+    newRound();
+  }
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>

@@ -48,12 +48,15 @@ h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; marg
 .hud .spacer { flex: 1; }
 .btn { font-family: var(--font-display); font-size: .75rem; letter-spacing: .06em; background: var(--panel); color: var(--fg); border: 2px solid var(--edge); padding: 6px 10px; cursor: pointer; }
 .btn:hover { border-color: var(--gold); }
+.btn.select { border-color: var(--gold); color: var(--gold); }
 .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .stage { position: relative; width: min(100%, 624px, calc(100dvh - 230px)); min-width: 260px; aspect-ratio: 1; max-width: 100%; }
 canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; border: 3px solid var(--edge); box-sizing: border-box; background: #000; }
 .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(12, 9, 30, .82); padding: 16px; box-sizing: border-box; }
 .card { background: var(--panel); border: 3px solid var(--gold); padding: 18px; max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 12px; max-height: 100%; overflow: auto; box-sizing: border-box; }
 .card h2 { font-family: var(--font-display); margin: 0; color: var(--gold); font-size: 1.25rem; text-wrap: balance; }
+.cardHead { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.card h3 { font-family: var(--font-display); margin: 4px 0 0; color: var(--gold); font-size: .9rem; letter-spacing: .06em; }
 .card p { margin: 0; line-height: 1.4; color: var(--fg); }
 .card .small { color: var(--muted); font-size: .9rem; }
 .levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -130,16 +133,17 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
     <div class="spacer"></div>
     <button class="btn" id="btnSound" type="button" aria-pressed="true">Music on</button>
     <button class="btn" id="btnRetry" type="button">Retry</button>
-    <button class="btn" id="btnMenu" type="button">Levels</button>
+    <button class="btn select" id="btnMenu" type="button">Level Select</button>
   </div>
   <div class="stage">
     <canvas id="cv" width="624" height="624" aria-label="Game board"></canvas>
     <div class="overlay" id="ovMenu">
       <div class="card">
-        <h2>Poncho’s Adventure</h2>
+        <div class="cardHead"><h2>Level Select</h2><button class="btn" id="btnClose" type="button">Back to room</button></div>
+        <div class="levels" id="levelGrid"></div>
+        <h3>How to play</h3>
         <p>Poncho the cat must cross the keep's rooms. In each room, collect every Heart Framer to open the chest, take the jewel, and leave through the door that opens at the top.</p>
         <p class="small">Push green Emerald Framers to block gazes. Gold-framed purple hearts give 2 magic shots: hit a monster to turn it into an egg, hit the egg to send it away for a while. Eggs can be pushed, and they float on water. Trees stop your feet but not shots or stares. Later rooms add grey hearts that give a Hammer for breaking one rock, teal hearts that give a Bridge for crossing one water or lava tile (press X), plus sand that slows you, grass that monsters cannot enter, and river currents that carry eggs.</p>
-        <div class="levels" id="levelGrid"></div>
       </div>
     </div>
     <div class="overlay" id="ovIntro" hidden>
@@ -164,7 +168,7 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
     <span><kbd>X</kbd> use power</span>
     <span><kbd>R</kbd> retry room</span>
     <span><kbd>M</kbd> music</span>
-    <span><kbd>ESC</kbd> levels</span>
+    <span><kbd>L</kbd> / <kbd>ESC</kbd> level select</span>
   </div>
   <div class="pad">
     <div class="dpad">
@@ -976,7 +980,7 @@ const ETYPE = {
   r: { kind: "rocky", shoot: false, speed: 0.5 },
 };
 
-const VERSION = "v1.2";
+const VERSION = "v1.3";
 document.getElementById("version").textContent = VERSION;
 
 const cv = document.getElementById("cv");
@@ -986,8 +990,8 @@ const $ = id => document.getElementById(id);
 let g = null;
 let deaths = 0;
 let done = new Set();
-try { done = new Set(JSON.parse(localStorage.getItem("jewelkeep.done") || "[]")); } catch (e) {}
-function saveDone() { try { localStorage.setItem("jewelkeep.done", JSON.stringify([...done])); } catch (e) {} }
+try { done = new Set(JSON.parse(localStorage.getItem("ponchos.done") || localStorage.getItem("jewelkeep.done") || "[]")); } catch (e) {}
+function saveDone() { try { localStorage.setItem("ponchos.done", JSON.stringify([...done])); } catch (e) {} }
 
 const key = (r, c) => r * N + c;
 
@@ -1792,8 +1796,11 @@ function buildMenu() {
 function openMenu() {
   buildMenu(); showOverlay("ovMenu");
   const first = LEVELS.findIndex((_, i) => !done.has(i));
-  setTimeout(() => $("lv" + (first < 0 ? 0 : first)).focus(), 30);
+  const card = $("ovMenu").querySelector(".card");
+  setTimeout(() => { card.scrollTop = 0; $("lv" + (first < 0 ? 0 : first)).focus({ preventScroll: true }); }, 30);
 }
+function closeMenu() { if (g) showOverlay(null); }
+$("btnClose").addEventListener("click", closeMenu);
 
 $("btnStart").addEventListener("click", () => { showOverlay(null); });
 $("btnNext").addEventListener("click", () => {
@@ -1833,7 +1840,7 @@ function setTrack(n) {
   if (t !== track) { track = t; stepIdx = 0; }
 }
 let soundOn = true;
-try { soundOn = localStorage.getItem("jewelkeep.sound") !== "off"; } catch (e) {}
+try { soundOn = (localStorage.getItem("ponchos.sound") || localStorage.getItem("jewelkeep.sound")) !== "off"; } catch (e) {}
 let actx = null, master = null, musicBus = null, nextTime = 0, stepIdx = 0, schedTimer = null;
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -1919,7 +1926,7 @@ function sfx(name) {
 }
 function setSound(on) {
   soundOn = on;
-  try { localStorage.setItem("jewelkeep.sound", on ? "on" : "off"); } catch (e) {}
+  try { localStorage.setItem("ponchos.sound", on ? "on" : "off"); } catch (e) {}
   $("btnSound").textContent = on ? "Music on" : "Music off";
   $("btnSound").setAttribute("aria-pressed", String(on));
   if (on) ensureAudio(); else stopAudio();
@@ -1945,13 +1952,17 @@ window.addEventListener("keydown", ev => {
   const d = KEYMAP[ev.key];
   const overlayOpen = !$("ovMenu").hidden || !$("ovIntro").hidden || !$("ovClear").hidden;
   if (!$("ovIntro").hidden && (d || ev.key === " ")) { ev.preventDefault(); showOverlay(null); if (d) press(d); return; }
-  if (overlayOpen) { if (ev.key === "Escape" && g && $("ovMenu").hidden) openMenu(); return; }
+  if (overlayOpen) {
+    if (!$("ovMenu").hidden && (ev.key === "Escape" || ev.key === "l" || ev.key === "L")) closeMenu();
+    else if (ev.key === "Escape" && g && $("ovMenu").hidden) openMenu();
+    return;
+  }
   if (d) { ev.preventDefault(); press(d); }
   else if (ev.key === " " || ev.key === "z" || ev.key === "Z" || ev.key === "j") { ev.preventDefault(); if (!ev.repeat) fire(); }
   else if (ev.key === "x" || ev.key === "X" || ev.key === "k") { ev.preventDefault(); if (!ev.repeat) usePower(); }
   else if (ev.key === "r" || ev.key === "R") { if (g && !g.cleared) loadLevel(g.idx, true); }
   else if (ev.key === "m" || ev.key === "M") setSound(!soundOn);
-  else if (ev.key === "Escape") openMenu();
+  else if (ev.key === "Escape" || ev.key === "l" || ev.key === "L") openMenu();
 });
 window.addEventListener("keyup", ev => { const d = KEYMAP[ev.key]; if (d) release(d); });
 window.addEventListener("blur", () => { held.length = 0; });

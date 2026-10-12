@@ -5,6 +5,7 @@ Personal games site, published with GitHub Pages from `main` (root). Every push 
 ## Layout
 - `index.html` is the home page with one card per game.
 - Each game lives in its own folder (`hangman/`, `scareisdale/`, …) as a self-contained `index.html`.
+- `flip-five/` (the Wordle-style game) carries its dictionary inside `index.html` as two long strings of five-letter words with no separators: `ANSWERS` (the words it picks from) and `EXTRA` (every other word accepted as a guess).
 - To add a game: create its folder, add a card to `index.html`, and add the folder (plus any icons) to `PAGES` and its Google Fonts URL to `FONT_CSS` in `sw.js`.
 - The site installs as one offline app ("Games" on the home screen): `manifest.webmanifest`, `icon-*.png` and `sw.js` at the root. Bump `CACHE` in `sw.js` whenever that file changes. Each game links back to `../` (the installed app has no Back button) and registers `../sw.js`.
 

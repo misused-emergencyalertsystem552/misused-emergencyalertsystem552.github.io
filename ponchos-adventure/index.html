@@ -50,6 +50,7 @@ h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; marg
 .btn { font-family: var(--font-display); font-size: .75rem; letter-spacing: .06em; background: var(--panel); color: var(--fg); border: 2px solid var(--edge); padding: 6px 10px; cursor: pointer; }
 .btn:hover { border-color: var(--gold); }
 .btn.select { border-color: var(--gold); color: var(--gold); }
+a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .stage { position: relative; width: min(100%, 624px, calc(100dvh - 230px)); min-width: 260px; aspect-ratio: 1; max-width: 100%; }
 canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; border: 3px solid var(--edge); box-sizing: border-box; background: #000; }
@@ -136,6 +137,7 @@ canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; 
     <div class="chip"><b>POWER</b><span id="hudPower">none</span></div>
     <div class="chip"><b id="hudLifeLabel">LIVES</b><span id="hudDeaths">0</span></div>
     <div class="spacer"></div>
+    <a class="btn" id="btnGames" href="../" hidden>Games</a>
     <button class="btn" id="btnSound" type="button" aria-pressed="true">Music on</button>
     <button class="btn" id="btnHint" type="button">Hint</button>
     <button class="btn" id="btnRetry" type="button">Retry</button>
@@ -1368,7 +1370,12 @@ const ETYPE = {
   B: { kind: "boss", shoot: true, speed: 0.45, dir: "right" },
 };
 
-const VERSION = "2.1";
+const VERSION = "2.2";
+// On the games site: link back to the menu and save everything for offline play
+if (location.pathname.includes("/ponchos-adventure/")) {
+  document.getElementById("btnGames").hidden = false;
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js", { scope: "../" }).catch(() => {});
+}
 document.getElementById("version").textContent = "Version " + VERSION;
 
 const cv = document.getElementById("cv");

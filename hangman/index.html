@@ -106,6 +106,7 @@ h1 span { color: var(--chalk-yellow); }
   align-items: start;
 }
 .version { margin: 0; font-size: 12px; color: var(--chalk-dim); text-align: right; font-variant-numeric: tabular-nums; }
+.home-link { color: var(--chalk); }
 .stage { position: relative; }
 canvas { display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 300 / 260; }
 
@@ -321,7 +322,7 @@ kbd { font-family: var(--font-hand); border: 1px solid var(--chalk-dim); border-
         <input id="type-in" class="type-in" type="text" aria-label="Type a letter to guess"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
         <p class="hint-line">Type letters on any keyboard or tap them above. On an iPad without a keyboard attached, tap <b>Show keyboard</b>. <kbd>Enter</kbd> starts the next word.</p>
-        <p class="version" id="version"></p>
+        <p class="version"><a class="home-link" href="../">All games</a> · <span id="version"></span></p>
       </div>
     </div>
   </div>
@@ -330,7 +331,7 @@ kbd { font-family: var(--font-hand); border: 1px solid var(--chalk-dim); border-
 
 <script>
 (() => {
-const VERSION = "v1.2";
+const VERSION = "v1.3";
 document.getElementById("version").textContent = "Hangman " + VERSION;
 const WORDS = {
   "Animals": ["platypus", "armadillo", "chameleon", "flamingo", "hedgehog", "narwhal", "porcupine", "salamander", "wolverine", "jellyfish", "kangaroo", "octopus", "pelican", "raccoon", "walrus", "axolotl", "alligator", "antelope", "baboon", "badger", "beaver", "bison", "buffalo", "butterfly", "camel", "caterpillar", "cheetah", "chimpanzee", "chinchilla", "chipmunk", "cobra", "coyote", "crocodile", "dolphin", "donkey", "dragonfly", "eagle", "elephant", "falcon", "ferret", "gazelle", "gecko", "giraffe", "gorilla", "grasshopper", "hamster", "hippopotamus", "hummingbird", "hyena", "iguana", "jaguar", "koala", "ladybug", "lemur", "leopard", "lobster", "meerkat", "mongoose", "moose", "mosquito", "ostrich", "otter", "panther", "parrot", "peacock", "penguin", "pheasant", "piranha", "porpoise", "python", "rattlesnake", "reindeer", "rhinoceros", "scorpion", "seahorse", "squirrel", "starfish", "stingray", "tarantula", "tortoise", "toucan", "turtle", "vulture", "warthog", "weasel", "woodpecker", "yak", "zebra", "anteater", "bumblebee", "cockatoo", "cuttlefish", "manatee", "mandrill", "ocelot", "orangutan", "pangolin", "puffin", "quokka", "sloth", "tapir", "wombat"],
@@ -934,5 +935,6 @@ function start(data) {
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js", { scope: "../" }).catch(() => {});</script>
 </body>
 </html>

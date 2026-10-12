@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>voodoovid's Games</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Games">
+<meta name="theme-color" content="#15100c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Kalam:wght@400;700&display=swap">
@@ -69,6 +77,12 @@ hr { border: 0; border-top: 2px dashed var(--chalk-dim); margin: 22px 0 26px; }
 .game p { margin: 0; font-size: 16px; line-height: 1.4; }
 .play { font-weight: 700; margin-top: auto; }
 @media (prefers-reduced-motion: reduce) { .game { transition: none; } }
+.offline { margin: 26px 0 0; padding-top: 18px; border-top: 2px dashed var(--chalk-dim); display: flex; flex-direction: column; gap: 6px; }
+.offline h2 { font-family: var(--font-display); font-size: 22px; margin: 0; color: var(--chalk-yellow); }
+.offline p { margin: 0; line-height: 1.4; }
+#offlineStatus { color: var(--chalk-dim); }
+#offlineStatus.ready { color: #9fe0a8; }
+.site-version { margin: 14px 0 0; font-size: 13px; color: var(--chalk-dim); text-align: right; font-family: system-ui, -apple-system, sans-serif; }
 </style>
 </head>
 <body>
@@ -112,7 +126,33 @@ hr { border: 0; border-top: 2px dashed var(--chalk-dim); margin: 22px 0 26px; }
         <span class="play">Play &rarr;</span>
       </a>
     </div>
+    <section class="offline" id="installHelp">
+      <h2>Play offline</h2>
+      <p id="offlineStatus">Saving the games on this device…</p>
+      <p>On iPhone or iPad: tap <b>Share</b> in Safari, then <b>Add to Home Screen</b>. The Games icon opens this page full screen, and every game works without internet once this page has said it's ready.</p>
+    </section>
+    <p class="site-version" id="siteVersion"></p>
   </main>
 </div>
+<script>
+const SITE_VERSION = "v1.0";
+document.getElementById("siteVersion").textContent = "Games menu " + SITE_VERSION;
+// Hide the install tip inside the installed app
+if (window.navigator.standalone || matchMedia("(display-mode: standalone)").matches) {
+  document.querySelector("#installHelp p:last-child").hidden = true;
+}
+const status = document.getElementById("offlineStatus");
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).then(async () => {
+    const keys = await caches.keys();
+    const cache = keys.length ? await caches.open(keys[0]) : null;
+    const ok = cache && (await Promise.all(["hangman/", "scareisdale/", "ponchos-adventure/"].map(p => cache.match(p)))).every(Boolean);
+    status.textContent = ok ? "Ready to play offline: all games are saved on this device." : "Open this page once more while online to finish saving the games.";
+    status.classList.toggle("ready", !!ok);
+  }).catch(() => { status.textContent = "This browser can't save the games for offline play."; });
+} else {
+  status.textContent = "This browser can't save the games for offline play.";
+}
+</script>
 </body>
 </html>

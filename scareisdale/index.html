@@ -148,6 +148,7 @@ html.phone-land, html.phone-land body{height:100%; overflow:hidden; touch-action
     <span class="keys-only"><kbd>X</kbd> / <kbd>Shift</kbd> run</span>
     <span class="keys-only"><kbd>&darr;</kbd> enter drum</span>
     <span class="keys-only"><kbd>P</kbd> pause</span>
+    <a class="tog" href="../" style="text-decoration:none">GAMES</a>
     <button class="tog" id="muteBtn" aria-pressed="false">MUSIC: ON</button>
     <span class="ver" id="verBar"></span>
   </div>
@@ -156,7 +157,7 @@ html.phone-land, html.phone-land body{height:100%; overflow:hidden; touch-action
 <script>
 (() => {
 'use strict';
-const VERSION = 'v1.3';
+const VERSION = 'v1.4';
 document.getElementById('verBar').textContent = VERSION;
 document.getElementById('verOverlay').textContent = VERSION;
 const TS = 16, VW = 384, VH = 240, ROWS = 15;
@@ -1579,5 +1580,6 @@ window.claude?.hot?.snapshot?.(() => ({ score, coins, lives, night }));
 window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
 })();
 </script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js", { scope: "../" }).catch(() => {});</script>
 </body>
 </html>

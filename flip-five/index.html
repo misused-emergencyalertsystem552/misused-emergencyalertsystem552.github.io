@@ -111,6 +111,7 @@ button { cursor: pointer; }
   background: linear-gradient(90deg, var(--hall) 0 4.5%, transparent 4.5% 95.5%, var(--hall) 95.5%);
 }
 .tile.typed { background: var(--flap); box-shadow: inset 0 0 0 1px #5d6575; }
+.tile.fixed { background: var(--flap); box-shadow: inset 0 0 0 max(2px, calc(var(--tile) * 0.035)) var(--hit); }
 .tile.hit  { background: var(--hit);  color: var(--hit-ink);  box-shadow: none; }
 .tile.near { background: var(--near); color: var(--near-ink); box-shadow: none; }
 .tile.miss { background: var(--dead); color: var(--dim); }
@@ -235,6 +236,7 @@ dialog::backdrop { background: rgba(5, 6, 8, .74); }
       <div><span class="tile miss">T</span><span>Dark: the letter is not in the word.</span></div>
     </div>
     <p>A letter can appear more than once. If you guess two Es and only one turns green or amber, the word has just one E.</p>
+    <p>Green letters you have found are filled into the next row for you, outlined in green, and typing skips over them. You can switch this off in Settings.</p>
     <h3>Must use clues</h3>
     <p>Switch this on for a harder game. Green letters must stay in their spot and amber letters must be used again in every later guess.</p>
     <h3>Words</h3>
@@ -273,6 +275,11 @@ dialog::backdrop { background: rgba(5, 6, 8, .74); }
         <button class="switch" id="optStrict" type="button" role="switch" aria-checked="false" aria-labelledby="lblStrict"><span class="track"></span></button>
       </div>
       <div class="opt">
+        <b id="lblFill">Fill in green letters</b>
+        <span class="fine">Letters you have already put in the right spot appear in the next row, so you only type the rest.</span>
+        <button class="switch" id="optFill" type="button" role="switch" aria-checked="true" aria-labelledby="lblFill"><span class="track"></span></button>
+      </div>
+      <div class="opt">
         <b id="lblContrast">High contrast</b>
         <span class="fine">Orange and blue flaps instead of green and amber.</span>
         <button class="switch" id="optContrast" type="button" role="switch" aria-checked="false" aria-labelledby="lblContrast"><span class="track"></span></button>
@@ -291,7 +298,7 @@ dialog::backdrop { background: rgba(5, 6, 8, .74); }
 <script>
 (() => {
 "use strict";
-const VERSION = "v1.0";
+const VERSION = "v1.1";
 
 // ---------- Words ----------
 // ANSWERS: the 2,309 words Wordle picks its answers from. EXTRA: every other word Wordle accepts as a guess.
@@ -324,7 +331,7 @@ $("about").textContent = "Flip Five " + VERSION + ". Your results and settings a
 const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem("flipfive." + k)); return v ?? d; } catch (e) { return d; } };
 const save = (k, v) => { try { localStorage.setItem("flipfive." + k, JSON.stringify(v)); } catch (e) {} };
 const freshStats = () => ({ played: 0, wins: 0, streak: 0, best: 0, dist: [0, 0, 0, 0, 0, 0] });
-let opts = Object.assign({ strict: false, contrast: false }, load("opts", {}));
+let opts = Object.assign({ strict: false, contrast: false, fill: true }, load("opts", {}));
 let stats = Object.assign(freshStats(), load("stats", {}));
 let recent = load("recent", []);
 let G = null;          // { answer, guesses: [], cur, over, won }
@@ -407,6 +414,28 @@ function setTile(t, ch, mark) {
   t.className = "tile" + (mark ? " " + mark : ch ? " typed" : "");
   t.setAttribute("aria-label", ch ? ch.toUpperCase() + (mark ? ", " + MARK[mark] : "") : "empty");
 }
+// Green letters already found, by spot (empty when "Fill in green letters" is off)
+function fixedSlots() {
+  const f = ["", "", "", "", ""];
+  if (!opts.fill) return f;
+  for (const g of G.guesses) { const m = score(g, G.answer); for (let i = 0; i < 5; i++) if (m[i] === "hit") f[i] = g[i]; }
+  return f;
+}
+const freeSpots = () => fixedSlots().reduce((a, ch, i) => ch ? a : a.concat(i), []);
+// The row being typed: found green letters in their spots, typed letters filling the other spots in order
+function draft() {
+  const f = fixedSlots(); let k = 0;
+  return f.map(ch => ch ? { ch, fixed: true } : { ch: G.cur[k++] || "", fixed: false });
+}
+function paintDraft() {
+  if (G.over || G.guesses.length >= 6) return;
+  G.cur = G.cur.slice(0, freeSpots().length);
+  draft().forEach((d, c) => {
+    const t = tiles[G.guesses.length][c];
+    setTile(t, d.ch);
+    if (d.fixed) { t.classList.add("fixed"); t.setAttribute("aria-label", d.ch.toUpperCase() + ", filled in from an earlier guess"); }
+  });
+}
 function paintKeys(rows) {
   const best = {}, rank = { miss: 1, near: 2, hit: 3 };
   for (const g of G.guesses.slice(0, rows)) {
@@ -429,9 +458,9 @@ function paintStatus() {
 function paint() {
   for (let r = 0; r < 6; r++) {
     const g = G.guesses[r], marks = g ? score(g, G.answer) : null;
-    const text = g || (r === G.guesses.length && !G.over ? G.cur : "");
-    for (let c = 0; c < 5; c++) setTile(tiles[r][c], text[c], marks && marks[c]);
+    for (let c = 0; c < 5; c++) setTile(tiles[r][c], g ? g[c] : "", marks && marks[c]);
   }
+  paintDraft();
   paintKeys(G.guesses.length);
   paintStatus();
 }
@@ -439,6 +468,7 @@ function paintOpts() {
   root.classList.toggle("contrast", opts.contrast);
   for (const id of ["strict", "optStrict"]) $(id).setAttribute("aria-checked", String(opts.strict));
   $("optContrast").setAttribute("aria-checked", String(opts.contrast));
+  $("optFill").setAttribute("aria-checked", String(opts.fill));
 }
 function paintStats() {
   $("nPlayed").textContent = stats.played;
@@ -457,16 +487,17 @@ function reject(msg) {
   row.classList.remove("shake"); void row.offsetWidth; row.classList.add("shake");
 }
 function type(ch) {
-  if (busy || G.over || G.cur.length >= 5) return;
+  const free = freeSpots();
+  if (busy || G.over || G.cur.length >= free.length) return;
   G.cur += ch; note = null;
-  const t = tiles[G.guesses.length][G.cur.length - 1];
+  const t = tiles[G.guesses.length][free[G.cur.length - 1]];
   setTile(t, ch); t.classList.add("pop");
   paintStatus(); save("game", G);
 }
 function erase() {
   if (busy || G.over || !G.cur) return;
   G.cur = G.cur.slice(0, -1); note = null;
-  setTile(tiles[G.guesses.length][G.cur.length], "");
+  setTile(tiles[G.guesses.length][freeSpots()[G.cur.length]], "");
   paintStatus(); save("game", G);
 }
 function record() {
@@ -478,7 +509,7 @@ function record() {
 function submit() {
   if (busy) return;
   if (G.over) return newGame();
-  const guess = G.cur;
+  const guess = draft().map(d => d.ch).join("");
   if (guess.length < 5) return reject("Not enough letters");
   if (!valid.has(guess)) return reject("Not in the word list");
   if (opts.strict) { const why = clueProblem(guess, G.guesses, G.answer); if (why) return reject(why); }
@@ -488,7 +519,7 @@ function submit() {
   if (G.over) record();
   save("game", G);
   const done = () => {
-    busy = false; paintKeys(G.guesses.length); paintStatus();
+    busy = false; paintKeys(G.guesses.length); paintDraft(); paintStatus();
     if (G.won && !calm) tiles[r].forEach((t, c) => setTimeout(() => t.classList.add("hop"), c * 80));
   };
   if (calm) { marks.forEach((m, c) => setTile(tiles[r][c], guess[c], m)); return done(); }
@@ -535,6 +566,7 @@ function setOpt(name, value) { opts[name] = value; save("opts", opts); paintOpts
 $("strict").addEventListener("click", e => { e.currentTarget.blur(); setOpt("strict", !opts.strict); });
 $("optStrict").addEventListener("click", () => setOpt("strict", !opts.strict));
 $("optContrast").addEventListener("click", () => setOpt("contrast", !opts.contrast));
+$("optFill").addEventListener("click", () => { setOpt("fill", !opts.fill); if (!busy) { paintDraft(); save("game", G); } });
 function open(id) {
   $("resetAsk").hidden = true; $("btnReset").hidden = false;
   $("giveAsk").hidden = true; $("btnGiveUp").hidden = false; $("btnGiveUp").disabled = G.over || busy;
@@ -549,6 +581,8 @@ for (const d of document.querySelectorAll("dialog")) {
   const shut = () => d.close ? d.close() : d.removeAttribute("open");
   d.querySelector("[data-close]").addEventListener("click", shut);
   d.addEventListener("click", e => { if (e.target === d) shut(); });   // a tap on the dimmed area outside
+  // closing hands focus back to the header button; drop it so Enter on a keyboard submits a guess instead of reopening this
+  d.addEventListener("close", () => { if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); });
 }
 $("btnReset").addEventListener("click", () => { $("btnReset").hidden = true; $("resetAsk").hidden = false; });
 $("btnResetNo").addEventListener("click", () => { $("btnReset").hidden = false; $("resetAsk").hidden = true; });

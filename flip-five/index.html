@@ -218,7 +218,7 @@ dialog::backdrop { background: rgba(5, 6, 8, .74); }
 
     <div class="remarks">
       <p id="status" role="status" aria-live="polite">Guess 1 of 6</p>
-      <button class="switch" id="strict" type="button" role="switch" aria-checked="false"><span class="track"></span>Must use clues</button>
+      <button class="switch" id="strict" type="button" role="switch" aria-checked="false"><span class="track"></span>Must keep greens</button>
       <button class="cta" id="btnNew" type="button" hidden>New word</button>
     </div>
 
@@ -237,8 +237,8 @@ dialog::backdrop { background: rgba(5, 6, 8, .74); }
     </div>
     <p>A letter can appear more than once. If you guess two Es and only one turns green or amber, the word has just one E.</p>
     <p>Green letters you have found are filled into the next row for you, outlined in green, and typing skips over them. You can switch this off in Settings.</p>
-    <h3>Must use clues</h3>
-    <p>Switch this on for a harder game. Green letters must stay in their spot and amber letters must be used again in every later guess.</p>
+    <h3>Must keep greens</h3>
+    <p>Switch this on for a harder game. Every green letter must stay in its spot in every later guess. Amber letters can be left out.</p>
     <h3>Words</h3>
     <p class="fine" id="wordCount"></p>
     <p class="fine">On a keyboard: type letters, <b>Enter</b> to guess, <b>Backspace</b> to erase. After a game, Enter starts the next word.</p>
@@ -270,8 +270,8 @@ dialog::backdrop { background: rgba(5, 6, 8, .74); }
     <header><h2 id="hOpts">Settings</h2><button class="ib" type="button" data-close>Close</button></header>
     <div>
       <div class="opt">
-        <b id="lblStrict">Must use clues</b>
-        <span class="fine">Green letters stay in their spot and amber letters must be used again in every later guess.</span>
+        <b id="lblStrict">Must keep greens</b>
+        <span class="fine">Every green letter must stay in its spot in every later guess. Amber letters can be left out.</span>
         <button class="switch" id="optStrict" type="button" role="switch" aria-checked="false" aria-labelledby="lblStrict"><span class="track"></span></button>
       </div>
       <div class="opt">
@@ -298,7 +298,7 @@ dialog::backdrop { background: rgba(5, 6, 8, .74); }
 <script>
 (() => {
 "use strict";
-const VERSION = "v1.1";
+const VERSION = "v1.2";
 
 // ---------- Words ----------
 // ANSWERS: the 2,309 words Wordle picks its answers from. EXTRA: every other word Wordle accepts as a guess.
@@ -314,7 +314,6 @@ const root = document.documentElement, app = $("app");
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const ORD = ["1st", "2nd", "3rd", "4th", "5th"];
-const COUNT = ["", "", "two", "three", "four", "five"];
 const MARK = { hit: "right spot", near: "wrong spot", miss: "not in the word" };
 
 // On the games site: link back to the menu and save everything for offline play
@@ -352,20 +351,11 @@ function score(guess, answer) {
   }
   return out;
 }
-// With "Must use clues" on: the reason a guess is not allowed, or null when it is fine.
+// With "Must keep greens" on: the reason a guess is not allowed, or null when it is fine. Amber letters are not required.
 function clueProblem(guess, earlier, answer) {
-  const need = {};
   for (const g of earlier) {
-    const marks = score(g, answer), seen = {};
-    for (let i = 0; i < 5; i++) {
-      if (marks[i] === "hit" && guess[i] !== g[i]) return ORD[i] + " letter must be " + g[i].toUpperCase();
-      if (marks[i] !== "miss") seen[g[i]] = (seen[g[i]] || 0) + 1;
-    }
-    for (const l in seen) need[l] = Math.max(need[l] || 0, seen[l]);
-  }
-  for (const l in need) {
-    const have = guess.split(l).length - 1;
-    if (have < need[l]) return "Guess must contain " + (need[l] > 1 ? COUNT[need[l]] + " " + l.toUpperCase() + "s" : l.toUpperCase());
+    const marks = score(g, answer);
+    for (let i = 0; i < 5; i++) if (marks[i] === "hit" && guess[i] !== g[i]) return ORD[i] + " letter must be " + g[i].toUpperCase();
   }
   return null;
 }

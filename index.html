@@ -132,7 +132,7 @@ hr { border: 0; border-top: 2px dashed var(--chalk-dim); margin: 22px 0 26px; }
           <path d="M5 22h18M49 22h18M27 50h18M49 50h18"/>
         </svg>
         <h2>Flip Five</h2>
-        <p>A Wordle-style word game on a station departure board. Six guesses at a five-letter word, the full Wordle dictionary, and an optional rule that makes you reuse every clue.</p>
+        <p>A Wordle-style word game on a station departure board. Six guesses at a five-letter word, the full Wordle dictionary, and an optional rule that makes you keep every green letter.</p>
         <span class="play">Play &rarr;</span>
       </a>
     </div>
@@ -145,7 +145,7 @@ hr { border: 0; border-top: 2px dashed var(--chalk-dim); margin: 22px 0 26px; }
   </main>
 </div>
 <script>
-const SITE_VERSION = "v1.1";
+const SITE_VERSION = "v1.2";
 document.getElementById("siteVersion").textContent = "Games menu " + SITE_VERSION;
 // Hide the install tip inside the installed app
 if (window.navigator.standalone || matchMedia("(display-mode: standalone)").matches) {

